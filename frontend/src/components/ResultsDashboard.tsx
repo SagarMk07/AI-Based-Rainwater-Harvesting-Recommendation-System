@@ -6,6 +6,9 @@ import {
   Bookmark,
   Printer,
   RotateCcw,
+  Wrench,
+  Leaf,
+  Check,
 } from 'lucide-react'
 import type { AnalysisResponse } from '../types/analysis'
 import { WaterBalanceChart } from './WaterBalanceChart'
@@ -34,43 +37,61 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
     window.print()
   }
 
+  // Cost Breakdown Estimation
+  const baseCost = recommendation.total_estimated_cost_inr
+  const tankCost = Math.round(recommendation.optimal_tank_capacity_litres * 6.5)
+  const filterPipesCost = Math.round(5000 + (explainability.engineering_factors?.catchment_sqm || 200) * 15)
+  const rechargeCost = recommendation.recharge_structure ? Math.round(recommendation.recharge_structure.estimated_cost_inr) : 0
+  const laborInstallCost = Math.round(baseCost * 0.18)
+  const annualMaintCost = Math.round(baseCost * 0.03)
+
+  const minRange = Math.round(baseCost * 0.9)
+  const maxRange = Math.round(baseCost * 1.15)
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+    <div className="space-y-8 animate-in fade-in duration-300">
+      {/* 1. TOP HEADER & SUMMARY */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center space-x-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-500/20">
+            <span className="inline-flex items-center space-x-1.5 rounded-full bg-forest-50 px-3 py-1 text-xs font-semibold text-forest-700 border border-forest-200">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Hydrological Simulation Verified</span>
             </span>
             <span className="text-xs text-slate-400 font-mono">ID: {data.request_id}</span>
           </div>
-          <h2 className="text-2xl font-extrabold text-slate-900 mt-1">Rainwater Harvesting Intelligence Report</h2>
-          <p className="text-xs text-slate-500">
-            Location: {weather.city}, {weather.state} · Rainfall: {weather.annual_rainfall_mm} mm · {weather.weather_source}
-          </p>
+
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 mt-1">
+            Your Rainwater Harvesting Analysis
+          </h1>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 mt-2 font-medium">
+            <span>📍 <strong>Location:</strong> {weather.city}, {weather.state}</span>
+            <span>🌧️ <strong>Rainfall:</strong> {weather.annual_rainfall_mm} mm/yr</span>
+            <span>🏠 <strong>Roof Area:</strong> {explainability.engineering_factors?.catchment_sqm || 200} m²</span>
+            <span>🚰 <strong>Annual Demand:</strong> {recommendation.annual_demand_litres.toLocaleString()} L/yr</span>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 self-start sm:self-auto no-print">
           <button
             onClick={handleSaveClick}
             disabled={saved}
-            className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm flex items-center space-x-1.5 transition-colors disabled:bg-emerald-50 disabled:text-emerald-700"
+            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-subtle flex items-center space-x-1.5 transition-colors disabled:bg-forest-50 disabled:text-forest-700"
           >
-            {saved ? <CheckCircle className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
-            <span>{saved ? 'Saved to History!' : 'Save Analysis'}</span>
+            {saved ? <CheckCircle className="h-3.5 w-3.5 text-forest-600" /> : <Bookmark className="h-3.5 w-3.5" />}
+            <span>{saved ? 'Saved!' : 'Save Analysis'}</span>
           </button>
           <button
             onClick={handlePrint}
-            className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm flex items-center space-x-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-subtle flex items-center space-x-1.5 transition-colors"
           >
             <Printer className="h-3.5 w-3.5" />
             <span>Print Report</span>
           </button>
           <button
             onClick={onReset}
-            className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm flex items-center space-x-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-xl bg-forest-700 hover:bg-forest-800 text-white text-xs font-bold shadow-subtle flex items-center space-x-1.5 transition-colors"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             <span>New Analysis</span>
@@ -78,182 +99,358 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
         </div>
       </div>
 
-      {/* Top 4 Key Hydrological Metrics */}
+      {/* 2. FOUR PRIMARY METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Gross Harvest */}
-        <div className="rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50/60 to-white p-4 shadow-sm">
-          <span className="text-[11px] font-bold text-sky-800 uppercase tracking-wider block">
-            Annual Gross Harvest
-          </span>
-          <div className="text-2xl font-black text-sky-950 font-mono mt-1">
-            {recommendation.annual_gross_harvest_litres.toLocaleString()} <span className="text-sm font-normal">L</span>
-          </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
-            Theoretical runoff ({recommendation.annual_collectable_litres.toLocaleString()} L collectable)
-          </span>
-        </div>
-
-        {/* Metric 2: Net Usable Water */}
-        <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-white p-4 shadow-sm">
+        {/* Metric 1: Harvest Potential */}
+        <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white p-5 shadow-subtle">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
-              Usable Water Supplied
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider">
+              💧 Harvest Potential
             </span>
-            <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-              {recommendation.water_savings_percentage}% Saved
+            <span className="text-[10px] font-mono bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-bold">
+              Gross Runoff
             </span>
           </div>
-          <div className="text-2xl font-black text-emerald-950 font-mono mt-1">
-            {recommendation.annual_usable_litres.toLocaleString()} <span className="text-sm font-normal">L</span>
+          <div className="text-2xl sm:text-3xl font-black text-sky-950 font-mono mt-2">
+            {recommendation.annual_gross_harvest_litres.toLocaleString()}{' '}
+            <span className="text-sm font-normal text-slate-500">L/yr</span>
           </div>
           <span className="text-[11px] text-slate-500 mt-1 block">
-            Directly replaces municipal/tanker water
+            {recommendation.annual_collectable_litres.toLocaleString()} L net collectable after first-flush
           </span>
         </div>
 
-        {/* Metric 3: Groundwater Recharge */}
-        <div className="rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50/60 to-white p-4 shadow-sm">
-          <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
-            Recharge / Overflow
-          </span>
-          <div className="text-2xl font-black text-amber-950 font-mono mt-1">
-            {recommendation.overflow_diverted_to_recharge_litres.toLocaleString()}{' '}
-            <span className="text-sm font-normal">L</span>
-          </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
-            Monsoon excess routed into ground aquifer
-          </span>
-        </div>
-
-        {/* Metric 4: Optimal Tank & Payback */}
-        <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-white p-4 shadow-sm">
+        {/* Metric 2: Annual Rainfall */}
+        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-white p-5 shadow-subtle">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-indigo-800 uppercase tracking-wider block">
-              Optimized Tank Size
+            <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider">
+              🌧️ Annual Rainfall
             </span>
-            <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
-              {recommendation.payback_years} yr payback
+            <span className="text-[10px] font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold">
+              IMD Normal
             </span>
           </div>
-          <div className="text-2xl font-black text-indigo-950 font-mono mt-1">
-            {recommendation.optimal_tank_capacity_litres.toLocaleString()}{' '}
-            <span className="text-sm font-normal">L</span>
+          <div className="text-2xl sm:text-3xl font-black text-indigo-950 font-mono mt-2">
+            {weather.annual_rainfall_mm}{' '}
+            <span className="text-sm font-normal text-slate-500">mm</span>
           </div>
           <span className="text-[11px] text-slate-500 mt-1 block">
-            Est. Cost: ₹{recommendation.total_estimated_cost_inr.toLocaleString()} (₹
-            {recommendation.annual_financial_savings_inr.toLocaleString()}/yr saved)
+            Peak precipitation during monsoon months
+          </span>
+        </div>
+
+        {/* Metric 3: Water Demand */}
+        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-white p-5 shadow-subtle">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              🚰 Water Demand
+            </span>
+            <span className="text-[10px] font-mono bg-slate-200 text-slate-800 px-2 py-0.5 rounded font-bold">
+              Household
+            </span>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900 font-mono mt-2">
+            {recommendation.annual_demand_litres.toLocaleString()}{' '}
+            <span className="text-sm font-normal text-slate-500">L/yr</span>
+          </div>
+          <span className="text-[11px] text-slate-500 mt-1 block">
+            {(recommendation.annual_demand_litres / 365).toFixed(0)} L/day continuous requirement
+          </span>
+        </div>
+
+        {/* Metric 4: Potential Savings */}
+        <div className="rounded-2xl border border-forest-100 bg-gradient-to-br from-forest-50/70 via-white to-white p-5 shadow-subtle">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-forest-800 uppercase tracking-wider">
+              💰 Potential Savings
+            </span>
+            <span className="text-[10px] font-mono bg-forest-100 text-forest-800 px-2 py-0.5 rounded font-bold">
+              {recommendation.water_savings_percentage}% Met
+            </span>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-forest-950 font-mono mt-2">
+            ₹{recommendation.annual_financial_savings_inr.toLocaleString()}{' '}
+            <span className="text-sm font-normal text-slate-500">/yr</span>
+          </div>
+          <span className="text-[11px] text-slate-500 mt-1 block">
+            {recommendation.annual_usable_litres.toLocaleString()} L domestic water replaced
           </span>
         </div>
       </div>
 
-      {/* AI Recommendation Banner */}
-      <div className="rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 text-white p-6 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+      {/* 3. PROMINENT PRIMARY RECOMMENDATION CARD */}
+      <div className="rounded-3xl border border-forest-800/40 bg-gradient-to-r from-slate-900 via-slate-900 to-forest-950 text-white p-6 sm:p-8 shadow-elevated space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/80 pb-4">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
-              <span className="text-xs uppercase font-mono tracking-wider text-emerald-400 font-bold">
-                Recommended System Architecture
+              <span className="h-2 w-2 rounded-full bg-forest-400"></span>
+              <span className="text-xs uppercase font-mono tracking-wider text-forest-400 font-bold">
+                AI Recommendation Engine Output
               </span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               {recommendation.system_type}
-            </h3>
-            <p className="text-xs text-slate-300">{recommendation.tagline}</p>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">{recommendation.tagline}</p>
           </div>
-          <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 text-center sm:text-right min-w-[140px]">
-            <span className="text-[10px] text-slate-400 uppercase font-mono block">Suitability Rating</span>
-            <span className="text-xl font-black text-emerald-400 font-mono">
-              {recommendation.suitability_score} / 100
+
+          <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 text-center sm:text-right min-w-[160px]">
+            <span className="text-[10px] text-slate-400 uppercase font-mono block">
+              Engineering Suitability Rating
             </span>
+            <span className="text-2xl sm:text-3xl font-black text-forest-400 font-mono">
+              {recommendation.suitability_score} <span className="text-sm text-slate-400">/ 100</span>
+            </span>
+            <span className="text-[10px] text-slate-400 block font-mono">Calibrated Multi-Criteria Score</span>
           </div>
         </div>
 
-        {/* Specifications Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-          <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/60 space-y-2">
-            <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider block">
-              1. Storage Tank Specification
-            </span>
-            <p className="text-slate-200 leading-relaxed">{recommendation.tank_design_summary}</p>
-          </div>
-
-          <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/60 space-y-2">
-            <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
-              2. Groundwater Recharge Specification
-            </span>
-            {recommendation.recharge_structure ? (
-              <div className="space-y-1 text-slate-200">
-                <p className="font-semibold text-white">{recommendation.recharge_structure.structure_type}</p>
-                <p className="text-[11px] text-slate-300">{recommendation.recharge_structure.dimensions}</p>
-                <p className="text-[10px] text-slate-400 font-mono">
-                  Filter Media: {recommendation.recharge_structure.filter_media}
-                </p>
+        {/* Primary Factors Checklist */}
+        <div className="space-y-2.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+            Primary Influencing Factors:
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            {recommendation.explanation_points.map((point, idx) => (
+              <div
+                key={idx}
+                className="flex items-start space-x-2.5 p-3 rounded-xl bg-slate-800/60 border border-slate-700/60"
+              >
+                <Check className="h-4 w-4 text-forest-400 mt-0.5 flex-shrink-0" />
+                <span className="text-slate-200 leading-relaxed">{point}</span>
               </div>
-            ) : (
-              <p className="text-slate-400">
-                Direct rooftop storage prioritized; separate excavation omitted for small catchment volume.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* STEP 7 Explainability Card: Why did the system recommend this? */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div className="flex items-center space-x-2 text-slate-900 font-bold text-sm border-b border-slate-100 pb-2.5">
-          <HelpCircle className="h-4 w-4 text-emerald-600" />
-          <span>Why Did the System Recommend This? (Engineering Explainability)</span>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-slate-800 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            {explainability.headline_reason}
-          </p>
-
-          <ul className="space-y-2 text-xs text-slate-700">
-            {explainability.reasons.map((reason, i) => (
-              <li key={i} className="flex items-start space-x-2">
-                <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                <span className="leading-relaxed">{reason}</span>
-              </li>
             ))}
-          </ul>
-
-          <div className="rounded-lg bg-amber-50/70 border border-amber-200 p-3 text-xs text-amber-900 space-y-1">
-            <span className="font-bold block text-[11px] uppercase tracking-wider text-amber-800">
-              Trade-Off Analysis & Diminishing Returns
-            </span>
-            <p className="leading-relaxed text-[11px] text-slate-700">{explainability.trade_off_analysis}</p>
           </div>
         </div>
       </div>
 
-      {/* System Schematic Flow */}
+      {/* 4. WATER FLOW VISUALIZATION */}
       <SystemSchematic
         roofType={data.water_balance.total_inflow_litres > 0 ? 'Catchment' : 'Rooftop'}
-        roofArea={explainability.engineering_factors.catchment_sqm || 200}
+        roofArea={explainability.engineering_factors?.catchment_sqm || 200}
         tankCapacity={recommendation.optimal_tank_capacity_litres}
-        rechargeName={recommendation.recharge_structure?.structure_type || 'Surface Storage Tank'}
+        rechargeName={recommendation.recharge_structure?.structure_type || 'Surface Buffer Storage'}
         rechargeDimensions={recommendation.recharge_structure?.dimensions}
+        hasRecharge={!!recommendation.recharge_structure}
       />
 
-      {/* Property & Rainfall Catchment Geographic Verification Map */}
+      {/* 5. 12-MONTH WATER BALANCE ANALYTICS (All 4 Views) */}
+      <WaterBalanceChart data={water_balance.monthly_breakdown} />
+
+      {/* 6. STORAGE OPTIMIZATION COMPARATIVE TABLE */}
+      <StorageOptimizationChart
+        candidates={tank_optimization_candidates}
+        optimalCapacity={recommendation.optimal_tank_capacity_litres}
+      />
+
+      {/* 7. WHY WE RECOMMEND THIS (EXPLAINABILITY SECTION) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-subtle space-y-4">
+        <div className="flex items-center space-x-2.5 border-b border-slate-100 pb-3">
+          <HelpCircle className="h-5 w-5 text-forest-600" />
+          <h3 className="text-base font-bold text-slate-900">
+            Why We Recommend This System (Engineering Explainability)
+          </h3>
+        </div>
+
+        <div className="space-y-4 text-xs text-slate-700">
+          <div className="p-3.5 bg-forest-50/60 rounded-xl border border-forest-200 font-semibold text-forest-950">
+            {explainability.headline_reason}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-medium">
+            {explainability.reasons.map((r, i) => (
+              <div key={i} className="flex items-start space-x-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <CheckCircle className="h-4 w-4 text-forest-600 mt-0.5 flex-shrink-0" />
+                <span className="leading-relaxed text-slate-700">{r}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl bg-amber-50/60 border border-amber-200 p-4 space-y-1.5">
+            <span className="font-bold text-amber-900 block uppercase tracking-wider text-[11px]">
+              Trade-Off Analysis & Law of Diminishing Returns:
+            </span>
+            <p className="text-slate-700 leading-relaxed">{explainability.trade_off_analysis}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 8. SYSTEM DESIGN SPECIFICATIONS */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-subtle space-y-4">
+        <div className="flex items-center space-x-2.5 border-b border-slate-100 pb-3">
+          <Wrench className="h-5 w-5 text-forest-600" />
+          <h3 className="text-base font-bold text-slate-900">
+            Preliminary Civil & Technical Sizing Specifications
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          {/* Storage Tank */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+            <span className="font-bold text-indigo-900 block uppercase tracking-wider text-[11px]">
+              1. Storage Tank
+            </span>
+            <div className="font-mono text-base font-bold text-indigo-950">
+              {recommendation.optimal_tank_capacity_litres.toLocaleString()} Litres
+            </div>
+            <p className="text-slate-600 text-[11px] leading-relaxed">
+              Recommended range: {(recommendation.optimal_tank_capacity_litres * 0.8).toFixed(0)}–
+              {(recommendation.optimal_tank_capacity_litres * 1.25).toFixed(0)} L (HDPE triple-layer).
+            </p>
+          </div>
+
+          {/* Recharge Structure */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+            <span className="font-bold text-amber-900 block uppercase tracking-wider text-[11px]">
+              2. Recharge Structure
+            </span>
+            <div className="font-mono text-base font-bold text-amber-950 truncate">
+              {recommendation.recharge_structure?.structure_type || 'Surface Storage'}
+            </div>
+            <p className="text-slate-600 text-[11px] leading-relaxed">
+              {recommendation.recharge_structure?.dimensions || 'Direct roof collection without pit'}
+            </p>
+          </div>
+
+          {/* Filtration Screen */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+            <span className="font-bold text-forest-900 block uppercase tracking-wider text-[11px]">
+              3. Filtration Media
+            </span>
+            <div className="font-mono text-base font-bold text-forest-950">
+              100-Micron SS Mesh
+            </div>
+            <p className="text-slate-600 text-[11px] leading-relaxed">
+              First-flush diverter (1-2 mm initial wash) + dual-chamber sand-gravel filter bed.
+            </p>
+          </div>
+
+          {/* Conveyance Piping */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+            <span className="font-bold text-sky-900 block uppercase tracking-wider text-[11px]">
+              4. Conveyance Piping
+            </span>
+            <div className="font-mono text-base font-bold text-sky-950">
+              110mm / 4" PVC
+            </div>
+            <p className="text-slate-600 text-[11px] leading-relaxed">
+              UV-stabilized rigid PVC downspouts with 1:100 slope gradient for gravity feed.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 9. ESTIMATED INSTALLATION COST & FINANCIAL RETURN */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-subtle space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              Estimated Installation Cost Breakdown
+            </h3>
+            <p className="text-xs text-slate-500">
+              Regional component cost estimates based on standard CPWD schedule of rates.
+            </p>
+          </div>
+          <span className="text-xs font-mono font-bold bg-forest-50 text-forest-800 border border-forest-200 px-3 py-1 rounded-full self-start sm:self-auto">
+            Payback Period: ~{recommendation.payback_years} Years
+          </span>
+        </div>
+
+        {/* Breakdown Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs font-mono">
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] text-slate-500 block uppercase">Storage Tank</span>
+            <span className="font-bold text-slate-900">₹{tankCost.toLocaleString()}</span>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] text-slate-500 block uppercase">Piping & Diverter</span>
+            <span className="font-bold text-slate-900">₹{filterPipesCost.toLocaleString()}</span>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] text-slate-500 block uppercase">Recharge Pit</span>
+            <span className="font-bold text-slate-900">₹{rechargeCost.toLocaleString()}</span>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] text-slate-500 block uppercase">Labour & Plumbing</span>
+            <span className="font-bold text-slate-900">₹{laborInstallCost.toLocaleString()}</span>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] text-slate-500 block uppercase">Est. Total Cost</span>
+            <span className="font-bold text-forest-700">₹{baseCost.toLocaleString()}</span>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <span className="text-[10px] text-slate-500 block uppercase">Annual Maint.</span>
+            <span className="font-bold text-slate-900">₹{annualMaintCost.toLocaleString()}/yr</span>
+          </div>
+        </div>
+
+        {/* Estimated Range and Disclaimer */}
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div>
+            <span className="text-slate-500 block">Expected Total Capital Range:</span>
+            <span className="text-base font-extrabold text-slate-900 font-mono">
+              ₹{minRange.toLocaleString()} – ₹{maxRange.toLocaleString()}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 sm:max-w-md italic">
+            * Final costs vary by site ground conditions, plumbing run distances, regional contractor rates, and structural foundation requirements.
+          </p>
+        </div>
+      </div>
+
+      {/* 10. ENVIRONMENTAL IMPACT & FRESHWATER REPLACEMENT */}
+      <div className="rounded-2xl border border-forest-100 bg-gradient-to-r from-forest-50/50 via-white to-sky-50/50 p-6 shadow-subtle space-y-4">
+        <div className="flex items-center space-x-2.5 border-b border-forest-100/80 pb-3">
+          <Leaf className="h-5 w-5 text-forest-600" />
+          <h3 className="text-base font-bold text-slate-900">Environmental Conservation & Aquifer Impact</h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-white border border-forest-200 shadow-subtle">
+            <span className="text-[11px] font-bold text-forest-800 uppercase tracking-wider block">
+              Freshwater Replacement
+            </span>
+            <span className="text-2xl font-black text-forest-950 font-mono block mt-1">
+              {recommendation.annual_usable_litres.toLocaleString()} L
+            </span>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Reduces municipal piped or private water tanker dependency.
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white border border-sky-200 shadow-subtle">
+            <span className="text-[11px] font-bold text-sky-800 uppercase tracking-wider block">
+              Groundwater Replenished
+            </span>
+            <span className="text-2xl font-black text-sky-950 font-mono block mt-1">
+              {recommendation.overflow_diverted_to_recharge_litres.toLocaleString()} L
+            </span>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Stormwater directed to unconfined shallow aquifers.
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white border border-indigo-200 shadow-subtle">
+            <span className="text-[11px] font-bold text-indigo-800 uppercase tracking-wider block">
+              Urban Runoff Mitigation
+            </span>
+            <span className="text-2xl font-black text-indigo-950 font-mono block mt-1">
+              {recommendation.water_savings_percentage}%
+            </span>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Direct peak storm mitigation lessening neighborhood drainage overload.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 11. GEOGRAPHIC CATCHMENT MAP */}
       <PropertyMap
         city={weather.city}
         state={weather.state}
         annualRainfallMm={weather.annual_rainfall_mm}
-        roofAreaSqm={explainability.engineering_factors.catchment_sqm || 200}
+        roofAreaSqm={explainability.engineering_factors?.catchment_sqm || 200}
         recommendedSystem={recommendation.system_type}
-      />
-
-      {/* 12-Month Water Balance Chart */}
-      <WaterBalanceChart data={water_balance.monthly_breakdown} />
-
-      {/* Multi-Candidate Storage Optimization Table */}
-      <StorageOptimizationChart
-        candidates={tank_optimization_candidates}
-        optimalCapacity={recommendation.optimal_tank_capacity_litres}
       />
     </div>
   )

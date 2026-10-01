@@ -1,68 +1,42 @@
 import React, { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import {
-  ShieldCheck,
-  Calculator,
-  Cpu,
-  Bookmark,
   AlertTriangle,
+  Calculator,
   FileText,
+  ArrowRight,
+  RotateCcw,
 } from 'lucide-react'
-import type { HealthResponse } from '../types/health'
-import type { AnalysisFormData, AnalysisResponse } from '../types/analysis'
+import type { AppContextType } from '../layouts/RootLayout'
+import type { AnalysisFormData } from '../types/analysis'
 import { analysisService } from '../services/analysisService'
 import { AnalysisForm } from '../components/AnalysisForm'
 import { ResultsDashboard } from '../components/ResultsDashboard'
 import { HistorySection } from '../components/HistorySection'
-import { MLTelemetryModal } from '../components/MLTelemetryModal'
+import { DashboardSummary } from '../components/DashboardSummary'
+import { LandingHero } from '../components/LandingHero'
+import { AboutSection } from '../components/AboutSection'
 import { StatusCard } from '../components/StatusCard'
 
-interface OutletContextType {
-  health: HealthResponse | null
-  loading: boolean
-  error: string | null
-  refetch: () => void
-}
-
 export const HomePage: React.FC = () => {
-  const { health, loading: healthLoading, error: healthError, refetch } = useOutletContext<OutletContextType>()
+  const {
+    health,
+    loading: healthLoading,
+    error: healthError,
+    refetch,
+    activeTab,
+    setActiveTab,
+    analysisResult,
+    setAnalysisResult,
+    history,
+    saveToHistory,
+    deleteFromHistory,
+    clearHistory,
+    openTelemetry,
+  } = useOutletContext<AppContextType>()
 
-  const [activeTab, setActiveTab] = useState<'wizard' | 'results' | 'history'>('wizard')
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
-  const [showMLModal, setShowMLModal] = useState(false)
-
-  // Local storage history initialized lazily to avoid setState in effect
-  const [history, setHistory] = useState<AnalysisResponse[]>(() => {
-    try {
-      const stored = localStorage.getItem('rwh_analysis_history')
-      return stored ? JSON.parse(stored) : []
-    } catch {
-      return []
-    }
-  })
-
-  const saveToHistory = (item: AnalysisResponse) => {
-    try {
-      const updated = [item, ...history.filter((h) => h.request_id !== item.request_id)].slice(0, 20)
-      setHistory(updated)
-      localStorage.setItem('rwh_analysis_history', JSON.stringify(updated))
-    } catch {
-      // Fallback
-    }
-  }
-
-  const deleteFromHistory = (requestId: string) => {
-    const updated = history.filter((h) => h.request_id !== requestId)
-    setHistory(updated)
-    localStorage.setItem('rwh_analysis_history', JSON.stringify(updated))
-  }
-
-  const clearHistory = () => {
-    setHistory([])
-    localStorage.removeItem('rwh_analysis_history')
-  }
 
   const handleRunAnalysis = async (formData: AnalysisFormData) => {
     setAnalyzing(true)
@@ -70,8 +44,9 @@ export const HomePage: React.FC = () => {
     try {
       const result = await analysisService.runAnalysis(formData)
       setAnalysisResult(result)
+      saveToHistory(result)
       setActiveTab('results')
-      window.scrollTo({ top: 380, behavior: 'smooth' })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err: any) {
       setApiError(err.message || 'Failed to complete analysis. Please verify backend connection.')
     } finally {
@@ -80,157 +55,193 @@ export const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="py-8 min-h-screen">
+    <div className="py-6 sm:py-8 min-h-screen">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Hero Section */}
-        <section className="rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white p-6 sm:p-10 shadow-xl border border-slate-700/50">
-          <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center space-x-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Engineering Intelligence & Optimization Engine</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
-              AI-Based Rainwater Harvesting Optimization
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Combining hydrological physical laws (IS 15797 / CPWD standards), chronological machine learning,
-              12-month iterative water-balance simulations, and multi-criteria optimization to deliver transparent,
-              defensible rainwater harvesting architectures.
-            </p>
-
-            <div className="pt-2 flex flex-wrap gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('wizard')
-                  window.scrollTo({ top: 350, behavior: 'smooth' })
-                }}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center space-x-2 transition-all shadow-sm"
-              >
-                <Calculator className="h-4 w-4" />
-                <span>Start Site Analysis</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowMLModal(true)}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold flex items-center space-x-2 transition-all shadow-sm"
-              >
-                <Cpu className="h-4 w-4 text-emerald-400" />
-                <span>View Audited ML Metrics</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('history')}
-                className="px-4 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium flex items-center space-x-1.5 transition-all"
-              >
-                <Bookmark className="h-3.5 w-3.5 text-sky-400" />
-                <span>History ({history.length})</span>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Tab Navigation Controls */}
-        <div className="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 gap-3">
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setActiveTab('wizard')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'wizard'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <Calculator className="h-3.5 w-3.5" />
-              <span>1. Analysis Wizard</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('results')}
-              disabled={!analysisResult}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'results'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : analysisResult
-                  ? 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-              }`}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span>2. Results Dashboard</span>
-              {analysisResult && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'history'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <Bookmark className="h-3.5 w-3.5" />
-              <span>3. Saved History ({history.length})</span>
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-2 text-xs">
-            <button
-              onClick={() => setShowMLModal(true)}
-              className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center space-x-1"
-            >
-              <Cpu className="h-3.5 w-3.5" />
-              <span>Inspect ML Telemetry</span>
-            </button>
-          </div>
-        </div>
-
         {/* API Error Notification */}
         {apiError && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 flex items-start space-x-3">
-            <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 flex items-start space-x-3 shadow-sm animate-in fade-in">
+            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
             <div className="space-y-1">
-              <span className="font-bold block">Engine Communication Error</span>
-              <p>{apiError}</p>
+              <span className="font-bold text-sm block">Engine Communication Error</span>
+              <p className="leading-relaxed">{apiError}</p>
+              <button
+                type="button"
+                onClick={() => setApiError(null)}
+                className="mt-2 inline-flex items-center space-x-1 font-semibold text-red-900 underline hover:no-underline"
+              >
+                <span>Dismiss</span>
+              </button>
             </div>
           </div>
         )}
 
-        {/* Active Content Area */}
+        {/* Tab View 1: DASHBOARD (Summary if data exists, or Landing Hero if empty) */}
+        {activeTab === 'dashboard' && (
+          <>
+            {history.length > 0 || analysisResult ? (
+              <div className="space-y-10">
+                <DashboardSummary
+                  history={history}
+                  latestAnalysis={analysisResult}
+                  onStartNew={() => {
+                    setActiveTab('wizard')
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  onSelectAnalysis={(item) => {
+                    setAnalysisResult(item)
+                    setActiveTab('results')
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  onOpenTelemetry={openTelemetry}
+                  onViewAllHistory={() => {
+                    setActiveTab('history')
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                />
+
+                {/* Subordinate landing features to keep platform overview accessible */}
+                <div className="pt-6 border-t border-slate-200/80">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Hydrological System Architecture</h3>
+                      <p className="text-xs text-slate-500">
+                        How RainHarvest AI transforms precipitation data into sizing specifications
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('about')}
+                      className="text-xs font-semibold text-forest-700 hover:text-forest-800 flex items-center space-x-1"
+                    >
+                      <span>Read Engineering Specs</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <LandingHero
+                    onStartAnalysis={() => {
+                      setActiveTab('wizard')
+                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
+                    onOpenTelemetry={openTelemetry}
+                  />
+                </div>
+              </div>
+            ) : (
+              <LandingHero
+                onStartAnalysis={() => {
+                  setActiveTab('wizard')
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }}
+                onOpenTelemetry={openTelemetry}
+              />
+            )}
+          </>
+        )}
+
+        {/* Tab View 2: WIZARD */}
         {activeTab === 'wizard' && (
-          <div className="space-y-6">
-            <div className="border-b border-slate-200 pb-2">
-              <h2 className="text-base font-bold text-slate-900">Site & Catchment Input Specification</h2>
-              <p className="text-xs text-slate-500">
-                Provide site physical parameters or choose a verification benchmark preset to calculate optimal storage and recharge design.
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="border-b border-slate-200 pb-4">
+              <div className="inline-flex items-center space-x-2 rounded-full bg-forest-50 px-3 py-1 text-xs font-semibold text-forest-700 border border-forest-200 mb-2">
+                <Calculator className="h-3.5 w-3.5" />
+                <span>5-Step Guided Configuration</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Site & Catchment Input Specification
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
+                Provide property dimensions, select location weather data, and specify water demand.
+                You can also choose any of the 4 benchmark test scenarios to pre-fill standard parameters.
               </p>
             </div>
+
             <AnalysisForm onSubmit={handleRunAnalysis} loading={analyzing} />
           </div>
         )}
 
-        {activeTab === 'results' && analysisResult && (
-          <ResultsDashboard
-            data={analysisResult}
-            onReset={() => setActiveTab('wizard')}
-            onSave={saveToHistory}
-          />
+        {/* Tab View 3: RESULTS */}
+        {activeTab === 'results' && (
+          <div className="animate-in fade-in duration-300">
+            {analysisResult ? (
+              <ResultsDashboard
+                data={analysisResult}
+                onReset={() => {
+                  setActiveTab('wizard')
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }}
+                onSave={saveToHistory}
+              />
+            ) : (
+              <div className="rounded-3xl border border-slate-200/90 bg-white p-12 text-center shadow-card max-w-2xl mx-auto my-12 space-y-5">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-forest-50 text-forest-700 border border-forest-200">
+                  <FileText className="h-7 w-7 text-forest-600" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-xl font-bold text-slate-900">No Active Analysis Loaded</h3>
+                  <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                    Configure your site parameters or choose a verification benchmark preset to calculate
+                    optimal tank sizing, recharge structures, and water-balance curves.
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('wizard')
+                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
+                    className="inline-flex items-center space-x-2 rounded-xl bg-forest-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-forest-800 transition"
+                  >
+                    <Calculator className="h-4 w-4" />
+                    <span>Launch 5-Step Analysis Wizard</span>
+                  </button>
+                  {history.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAnalysisResult(history[0])
+                      }}
+                      className="inline-flex items-center space-x-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                      <span>Load Latest Saved Run</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
+        {/* Tab View 4: HISTORY */}
         {activeTab === 'history' && (
-          <HistorySection
-            history={history}
-            onSelect={(item) => {
-              setAnalysisResult(item)
-              setActiveTab('results')
-            }}
-            onClear={clearHistory}
-            onDelete={deleteFromHistory}
-          />
+          <div className="animate-in fade-in duration-300">
+            <HistorySection
+              history={history}
+              onSelect={(item) => {
+                setAnalysisResult(item)
+                setActiveTab('results')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onClear={clearHistory}
+              onDelete={deleteFromHistory}
+              onStartNew={() => {
+                setActiveTab('wizard')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+            />
+          </div>
         )}
 
-        {/* Real-time System Connectivity Telemetry (Collapsible at bottom) */}
-        <section className="pt-6 border-t border-slate-200">
+        {/* Tab View 5: ABOUT / METHODOLOGY */}
+        {activeTab === 'about' && (
+          <div className="animate-in fade-in duration-300">
+            <AboutSection />
+          </div>
+        )}
+
+        {/* Real-time System Connectivity Telemetry (Bottom collapsible) */}
+        <section className="pt-8 border-t border-slate-200/80">
           <StatusCard
             health={health}
             loading={healthLoading}
@@ -239,9 +250,7 @@ export const HomePage: React.FC = () => {
           />
         </section>
       </div>
-
-      {/* ML Telemetry Modal */}
-      <MLTelemetryModal isOpen={showMLModal} onClose={() => setShowMLModal(false)} />
     </div>
   )
 }
+export default HomePage
