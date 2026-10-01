@@ -21,12 +21,38 @@ export function useHealth(pollIntervalMs?: number) {
   }, [])
 
   useEffect(() => {
-    fetchHealth()
+    let isMounted = true
+    healthService.getHealth()
+      .then((result) => {
+        if (isMounted) {
+          setData(result)
+          setError(null)
+          setLoading(false)
+        }
+      })
+      .catch((err: any) => {
+        if (isMounted) {
+          setError(err?.message || 'Failed to connect to backend server')
+          setLoading(false)
+        }
+      })
+
     if (pollIntervalMs && pollIntervalMs > 0) {
-      const interval = setInterval(fetchHealth, pollIntervalMs)
-      return () => clearInterval(interval)
+      const interval = setInterval(() => {
+        healthService.getHealth()
+          .then((res) => { if (isMounted) setData(res) })
+          .catch(() => {})
+      }, pollIntervalMs)
+      return () => {
+        isMounted = false
+        clearInterval(interval)
+      }
     }
-  }, [fetchHealth, pollIntervalMs])
+
+    return () => {
+      isMounted = false
+    }
+  }, [pollIntervalMs])
 
   return { data, loading, error, refetch: fetchHealth }
 }

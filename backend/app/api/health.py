@@ -20,6 +20,10 @@ async def check_health() -> HealthResponse:
     """System health check endpoint verifying core services and database status."""
     db_info = get_db_status()
 
+    import os
+    model_dir = os.path.join(settings.BASE_DIR, settings.MODEL_DIR)
+    has_ml = os.path.exists(os.path.join(model_dir, "rainfall_regressor.joblib")) and os.path.exists(os.path.join(model_dir, "rainfall_classifier.joblib"))
+    
     return HealthResponse(
         status="ok",
         timestamp=datetime.now(timezone.utc).isoformat(),
@@ -37,10 +41,11 @@ async def check_health() -> HealthResponse:
             message=db_info["message"],
         ),
         pipelines=PipelineStatus(
-            data_pipeline="initialized",
-            ml_models="initialized",
-            calculation_engine="initialized",
-            water_balance="initialized",
-            optimization="initialized",
+            data_pipeline="ready" if os.path.exists(os.path.join(settings.BASE_DIR, "data", "processed", "rainfall_climate_dataset.csv")) else "initialized",
+            ml_models="active" if has_ml else "standby",
+            calculation_engine="active",
+            water_balance="active",
+            optimization="active",
         ),
     )
+

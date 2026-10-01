@@ -1,0 +1,73 @@
+{
+  "dataset_size": 3600,
+  "train_size": 2700,
+  "test_size": 900,
+  "train_years": "2005-2019",
+  "test_years": "2020-2024",
+  "features": [
+    "month_sin",
+    "month_cos",
+    "latitude",
+    "longitude",
+    "elevation_m",
+    "temperature_c",
+    "relative_humidity_pct",
+    "lag_1_month_rainfall",
+    "lag_2_month_rainfall",
+    "rolling_3m_avg_rainfall"
+  ],
+  "target_regression": "rainfall_mm",
+  "target_classification": "rainfall_regime",
+  "classes": [
+    "Deficit",
+    "Excess",
+    "Normal"
+  ],
+  "regression_metrics": {
+    "baseline_linear_regression": {
+      "mae": 43.34,
+      "rmse": 65.67,
+      "r2": 0.7839
+    },
+    "random_forest_regressor": {
+      "mae": 19.07,
+      "rmse": 37.23,
+      "r2": 0.9305
+    }
+  },
+  "classification_metrics": {
+    "accuracy": 0.9444,
+    "precision": 0.9293,
+    "recall": 0.9204,
+    "f1_score": 0.9246,
+    "confusion_matrix": [
+      [
+        471,
+        0,
+        3
+      ],
+      [
+        1,
+        225,
+        17
+      ],
+      [
+        12,
+        17,
+        154
+      ]
+    ]
+  },
+  "feature_importances": {
+    "month_sin": 0.0434,
+    "month_cos": 0.0498,
+    "latitude": 0.058,
+    "longitude": 0.0665,
+    "elevation_m": 0.0628,
+    "temperature_c": 0.1198,
+    "relative_humidity_pct": 0.1153,
+    "lag_1_month_rainfall": 0.1664,
+    "lag_2_month_rainfall": 0.1533,
+    "rolling_3m_avg_rainfall": 0.1648
+  }
+}

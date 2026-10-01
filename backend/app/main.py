@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.config import settings
 from backend.app.utils.logger import logger
 from backend.app.api.health import router as health_router
+from backend.app.api.analysis import router as analysis_router
+
 
 
 @asynccontextmanager
@@ -36,6 +38,8 @@ app.add_middleware(
 
 # Register API Routers
 app.include_router(health_router, prefix=settings.API_V1_STR)
+app.include_router(analysis_router, prefix=settings.API_V1_STR)
+
 
 
 @app.get("/")
