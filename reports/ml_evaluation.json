@@ -1,0 +1,149 @@
+{
+  "evaluation_timestamp": "2026-10-01T10:46:14.075589+00:00",
+  "model_name": "system_recommendation_ensemble",
+  "model_version": "2.0.0",
+  "algorithm": "Random Forest",
+  "dataset_summary": {
+    "total_records": 5400,
+    "test_records_evaluated": 1078,
+    "features_count": 28,
+    "class_distribution": {
+      "Hybrid System": {
+        "count": 1508,
+        "percentage": 27.93
+      },
+      "Recharge Pit": {
+        "count": 671,
+        "percentage": 12.43
+      },
+      "Recharge Well": {
+        "count": 1257,
+        "percentage": 23.28
+      },
+      "Storage Tank": {
+        "count": 1964,
+        "percentage": 36.37
+      }
+    }
+  },
+  "cross_validation_5_fold": {
+    "Logistic Regression": {
+      "mean_accuracy": 0.8523800000000001,
+      "std_accuracy": 0.00842339598974192,
+      "mean_macro_f1": 0.83454,
+      "std_macro_f1": 0.009210993431764031
+    },
+    "Random Forest": {
+      "mean_accuracy": 0.95326,
+      "std_accuracy": 0.0020343057783921955,
+      "mean_macro_f1": 0.94622,
+      "std_macro_f1": 0.002417767565337901
+    },
+    "Gradient Boosting": {
+      "mean_accuracy": 0.8940400000000001,
+      "std_accuracy": 0.010743295583758285,
+      "mean_macro_f1": 0.8681800000000001,
+      "std_macro_f1": 0.014936853751710893
+    }
+  },
+  "test_metrics": {
+    "accuracy": 0.949,
+    "macro_precision": 0.9381,
+    "macro_recall": 0.9399,
+    "macro_f1": 0.9389,
+    "confusion_matrix": [
+      [
+        298,
+        0,
+        1,
+        2
+      ],
+      [
+        1,
+        117,
+        4,
+        12
+      ],
+      [
+        4,
+        5,
+        241,
+        1
+      ],
+      [
+        8,
+        12,
+        5,
+        367
+      ]
+    ],
+    "per_class": {
+      "0": {
+        "precision": 0.9582,
+        "recall": 0.99,
+        "f1_score": 0.9739,
+        "support": 301
+      },
+      "1": {
+        "precision": 0.8731,
+        "recall": 0.8731,
+        "f1_score": 0.8731,
+        "support": 134
+      },
+      "2": {
+        "precision": 0.9602,
+        "recall": 0.9602,
+        "f1_score": 0.9602,
+        "support": 251
+      },
+      "3": {
+        "precision": 0.9607,
+        "recall": 0.9362,
+        "f1_score": 0.9483,
+        "support": 392
+      }
+    }
+  },
+  "feature_importances_top_10": {
+    "open_area_m2": 0.0791,
+    "budget": 0.0689,
+    "estimated_annual_savings": 0.0633,
+    "estimated_monthly_harvest": 0.0625,
+    "roof_area_m2": 0.0602,
+    "estimated_harvest_l": 0.0592,
+    "roof_to_open_area_ratio": 0.0584,
+    "occupants": 0.048,
+    "annual_water_demand_l": 0.0476,
+    "harvest_to_demand_ratio": 0.0476
+  },
+  "all_feature_importances": {
+    "open_area_m2": 0.0791,
+    "budget": 0.0689,
+    "estimated_annual_savings": 0.0633,
+    "estimated_monthly_harvest": 0.0625,
+    "roof_area_m2": 0.0602,
+    "estimated_harvest_l": 0.0592,
+    "roof_to_open_area_ratio": 0.0584,
+    "occupants": 0.048,
+    "annual_water_demand_l": 0.0476,
+    "harvest_to_demand_ratio": 0.0476,
+    "annual_rainfall_mm": 0.0447,
+    "daily_water_demand_l": 0.0443,
+    "groundwater_recharge_preference": 0.0435,
+    "soil_type_clay": 0.0426,
+    "soil_type_rocky": 0.0346,
+    "soil_type_loamy": 0.0319,
+    "soil_type_sandy": 0.0304,
+    "runoff_coefficient": 0.0253,
+    "soil_type_silty": 0.0238,
+    "roof_type_rcc": 0.0164,
+    "drainage_available": 0.0132,
+    "property_type_residential": 0.0118,
+    "roof_type_metal": 0.0114,
+    "roof_type_tiles": 0.0103,
+    "property_type_commercial": 0.0074,
+    "roof_type_pavers": 0.0064,
+    "property_type_institutional": 0.0041,
+    "property_type_industrial": 0.0031
+  }
+}

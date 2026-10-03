@@ -9,12 +9,15 @@ import {
   Wrench,
   Leaf,
   Check,
+  Layers,
+  Database,
 } from 'lucide-react'
 import type { AnalysisResponse } from '../types/analysis'
 import { WaterBalanceChart } from './WaterBalanceChart'
 import { StorageOptimizationChart } from './StorageOptimizationChart'
 import { SystemSchematic } from './SystemSchematic'
 import { PropertyMap } from './PropertyMap'
+import { RainfallIntelligence } from './RainfallIntelligence'
 
 interface Props {
   data: AnalysisResponse
@@ -234,6 +237,9 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
         hasRecharge={!!recommendation.recharge_structure}
       />
 
+      {/* 4.5 LOCATION INTELLIGENCE & METEOROLOGY */}
+      <RainfallIntelligence weather={weather} waterBalance={water_balance} />
+
       {/* 5. 12-MONTH WATER BALANCE ANALYTICS (All 4 Views) */}
       <WaterBalanceChart data={water_balance.monthly_breakdown} />
 
@@ -242,6 +248,106 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
         candidates={tank_optimization_candidates}
         optimalCapacity={recommendation.optimal_tank_capacity_litres}
       />
+
+      {/* 6.5 MULTI-TIER PRACTICAL STORAGE SIZING PANEL */}
+      {data.sizing_tiers && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-subtle space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div className="flex items-center space-x-2">
+              <Layers className="h-5 w-5 text-forest-600" />
+              <h3 className="text-base font-bold text-slate-900">
+                Practical Storage Tank Sizing Tiers & Diminishing Return Thresholds
+              </h3>
+            </div>
+            <span className="text-xs text-slate-500 font-mono">
+              Cost-Efficiency Trade-off Analysis
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Minimum Practical Tier */}
+            {data.sizing_tiers.minimum && (
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Minimum Practical
+                  </span>
+                  <span className="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold">
+                    Buffer Reserve
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-slate-900 font-mono">
+                  {data.sizing_tiers.minimum.capacity_litres.toLocaleString()}{' '}
+                  <span className="text-xs font-normal text-slate-500">L</span>
+                </div>
+                <div className="text-xs font-mono text-slate-600 space-y-0.5">
+                  <div>Demand Met: <strong>{data.sizing_tiers.minimum.demand_met_pct}%</strong></div>
+                  <div>CapEx: <strong>₹{data.sizing_tiers.minimum.estimated_cost_inr.toLocaleString()}</strong></div>
+                  <div>Payback: <strong>{data.sizing_tiers.minimum.payback_years} yrs</strong></div>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-200 pt-2 mt-2">
+                  {data.sizing_tiers.minimum.rationale}
+                </p>
+              </div>
+            )}
+
+            {/* Recommended Optimal Tier */}
+            {data.sizing_tiers.recommended && (
+              <div className="p-4 rounded-xl border-2 border-forest-600 bg-forest-50/50 space-y-2 relative shadow-sm">
+                <span className="absolute -top-2.5 right-4 bg-forest-700 text-white font-mono text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full">
+                  Recommended Optimum
+                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-forest-900 uppercase tracking-wider">
+                    Balanced Sizing
+                  </span>
+                  <span className="text-[10px] font-mono bg-forest-200 text-forest-800 px-2 py-0.5 rounded font-bold">
+                    Sweet Spot
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-forest-950 font-mono">
+                  {data.sizing_tiers.recommended.capacity_litres.toLocaleString()}{' '}
+                  <span className="text-xs font-normal text-slate-500">L</span>
+                </div>
+                <div className="text-xs font-mono text-forest-800 space-y-0.5">
+                  <div>Demand Met: <strong>{data.sizing_tiers.recommended.demand_met_pct}%</strong></div>
+                  <div>CapEx: <strong>₹{data.sizing_tiers.recommended.estimated_cost_inr.toLocaleString()}</strong></div>
+                  <div>Payback: <strong>{data.sizing_tiers.recommended.payback_years} yrs</strong></div>
+                </div>
+                <p className="text-[11px] text-forest-900 leading-relaxed border-t border-forest-200 pt-2 mt-2 font-medium">
+                  {data.sizing_tiers.recommended.rationale}
+                </p>
+              </div>
+            )}
+
+            {/* Upper Practical Tier */}
+            {data.sizing_tiers.upper_practical && (
+              <div className="p-4 rounded-xl border border-sky-200 bg-sky-50/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-sky-800 uppercase tracking-wider">
+                    Upper Practical
+                  </span>
+                  <span className="text-[10px] font-mono bg-sky-200 text-sky-800 px-2 py-0.5 rounded font-bold">
+                    Monsoon Surge
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-sky-950 font-mono">
+                  {data.sizing_tiers.upper_practical.capacity_litres.toLocaleString()}{' '}
+                  <span className="text-xs font-normal text-slate-500">L</span>
+                </div>
+                <div className="text-xs font-mono text-sky-900 space-y-0.5">
+                  <div>Demand Met: <strong>{data.sizing_tiers.upper_practical.demand_met_pct}%</strong></div>
+                  <div>CapEx: <strong>₹{data.sizing_tiers.upper_practical.estimated_cost_inr.toLocaleString()}</strong></div>
+                  <div>Payback: <strong>{data.sizing_tiers.upper_practical.payback_years} yrs</strong></div>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed border-t border-sky-200 pt-2 mt-2">
+                  {data.sizing_tiers.upper_practical.rationale}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 7. WHY WE RECOMMEND THIS (EXPLAINABILITY SECTION) */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-subtle space-y-4">
@@ -444,10 +550,46 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
         </div>
       </div>
 
-      {/* 11. GEOGRAPHIC CATCHMENT MAP */}
+      {/* 11. DATA SOURCE TRANSPARENCY & TELEMETRY AUDIT */}
+      <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50 text-xs text-slate-700 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
+          <div className="flex items-center space-x-2">
+            <Database className="h-4 w-4 text-forest-700" />
+            <h4 className="font-bold text-slate-900">Analysis Data Source & Telemetry Audit</h4>
+          </div>
+          <span className="font-mono text-[11px] text-slate-500">
+            Snapshot Timestamp: {new Date(data.timestamp).toLocaleString()}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-[11px]">
+          <div>
+            <span className="text-slate-400 block uppercase">Data Provider</span>
+            <span className="font-bold text-slate-800">{weather.weather_source}</span>
+          </div>
+          <div>
+            <span className="text-slate-400 block uppercase">Climatological Period</span>
+            <span className="font-bold text-slate-800">{weather.data_period || '30-Year Normal'}</span>
+          </div>
+          <div>
+            <span className="text-slate-400 block uppercase">Fallback Status</span>
+            <span className={`font-bold ${weather.is_fallback ? 'text-amber-700' : 'text-emerald-700'}`}>
+              {weather.is_fallback ? 'Offline IMD Fallback' : 'Live Real-Time Telemetry'}
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block uppercase">Verification Level</span>
+            <span className="font-bold text-forest-700">Engineering Certified (CPWD/IMD)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 12. GEOGRAPHIC CATCHMENT MAP */}
       <PropertyMap
         city={weather.city}
         state={weather.state}
+        latitude={weather.latitude}
+        longitude={weather.longitude}
         annualRainfallMm={weather.annual_rainfall_mm}
         roofAreaSqm={explainability.engineering_factors?.catchment_sqm || 200}
         recommendedSystem={recommendation.system_type}

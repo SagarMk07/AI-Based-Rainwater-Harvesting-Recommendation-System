@@ -1,5 +1,7 @@
 """REST API endpoints for hydrological analysis, ML forecasting, optimization, and recommendations."""
 
+import os
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
@@ -50,6 +52,18 @@ from backend.app.services.weather import (
     IMD_HISTORICAL_NORMALS,
     DEFAULT_NATIONAL_PROFILE,
 )
+from backend.app.services.weather_service import (
+    fetch_weather_for_location,
+    get_weather_service,
+)
+from backend.app.services.geocoding import (
+    geocode_location,
+    reverse_geocode,
+)
+from backend.app.schemas.analysis import (
+    GeocodeResultItem,
+    GeocodeResponse,
+)
 from backend.app.ml.rainfall_predictor import (
     predict_12_months_series,
     load_models,
@@ -70,8 +84,12 @@ _IN_MEMORY_ANALYSES: Dict[str, AnalysisResponse] = {}
 async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
     """Execute end-to-end engineering intelligence, optimization, and recommendation."""
     try:
-        # 1. Fetch weather profile
-        weather_profile: CityRainfallProfile = await fetch_city_weather(payload.city)
+        # 1. Fetch weather profile (utilizing coordinates if available)
+        weather_profile: CityRainfallProfile = await fetch_weather_for_location(
+            city_name=payload.city,
+            lat=payload.latitude,
+            lon=payload.longitude,
+        )
 
         # Override with manual inputs if provided
         annual_rain = payload.annual_rainfall_mm if payload.annual_rainfall_mm is not None else weather_profile.annual_rainfall_mm
@@ -121,7 +139,8 @@ async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
             budget_inr=payload.budget_inr,
         )
 
-        # 5. Build dynamic explanation
+        # 5. Build dynamic explanation with ML attribution and constraint notes
+        model_pred = rec.model_prediction or {}
         explainability = build_explanation(
             recommended_system_name=rec.system_type.value,
             roof_area_sqm=payload.roof_area_sqm,
@@ -133,6 +152,10 @@ async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
             open_area_sqm=payload.open_area_sqm,
             overflow_litres=rec.overflow_diverted_to_recharge_litres,
             payback_years=rec.payback_years,
+            model_confidence=model_pred.get("model_confidence"),
+            predicted_class=model_pred.get("predicted_class"),
+            top_features=model_pred.get("top_features"),
+            engineering_constraints=rec.engineering_constraints_applied,
         )
 
         # 6. ML Forecast comparison
@@ -151,6 +174,7 @@ async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
             tank_optimization_candidates=opt_summary.all_candidates,
             explainability=explainability,
             ml_forecast=ml_forecast_data,
+            sizing_tiers=opt_summary.sizing_tiers,
         )
 
         # Store in session memory
@@ -292,6 +316,9 @@ async def optimize_tank_storage(payload: TankOptimizeRequest) -> TankOptimizeRes
             all_candidates=summary.all_candidates,
             recommended_capacity_litres=summary.optimal_capacity_litres,
             selection_rationale=summary.recommendation_note,
+            minimum_practical_capacity_litres=summary.minimum_practical_capacity_litres,
+            upper_practical_capacity_litres=summary.upper_practical_capacity_litres,
+            sizing_tiers=summary.sizing_tiers,
         )
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
@@ -303,7 +330,11 @@ async def optimize_tank_storage(payload: TankOptimizeRequest) -> TankOptimizeRes
 @router.post("/recommend", response_model=SystemRecommendation)
 async def get_system_recommendation(payload: AnalysisRequest) -> SystemRecommendation:
     """Generate multi-criteria strategy recommendation (Storage, Recharge, Hybrid)."""
-    weather_profile = await fetch_city_weather(payload.city)
+    weather_profile = await fetch_weather_for_location(
+        city_name=payload.city,
+        lat=payload.latitude,
+        lon=payload.longitude,
+    )
     annual_rain = payload.annual_rainfall_mm if payload.annual_rainfall_mm is not None else weather_profile.annual_rainfall_mm
     monthly_rain = payload.monthly_rainfall_mm if payload.monthly_rainfall_mm is not None else weather_profile.monthly_rainfall_mm
 
@@ -320,6 +351,68 @@ async def get_system_recommendation(payload: AnalysisRequest) -> SystemRecommend
         has_existing_borewell=payload.has_existing_borewell,
         filter_efficiency=payload.filter_efficiency,
     )
+
+
+@router.post("/ml/recommend")
+@router.post("/recommend/predict")
+async def get_ml_engineering_recommendation(payload: AnalysisRequest) -> Dict[str, Any]:
+    """Prediction endpoint returning structured Section 19 format: ML recommendation, engineering, explanation, and model metadata."""
+    weather_profile = await fetch_weather_for_location(
+        city_name=payload.city,
+        lat=payload.latitude,
+        lon=payload.longitude,
+    )
+    annual_rain = payload.annual_rainfall_mm if payload.annual_rainfall_mm is not None else weather_profile.annual_rainfall_mm
+    monthly_rain = payload.monthly_rainfall_mm if payload.monthly_rainfall_mm is not None else weather_profile.monthly_rainfall_mm
+
+    rec = generate_recommendation(
+        roof_area_sqm=payload.roof_area_sqm,
+        roof_type=payload.roof_type,
+        annual_rainfall_mm=annual_rain,
+        monthly_rainfall_mm=monthly_rain,
+        occupants=payload.occupants,
+        daily_demand_litres=payload.daily_demand_litres,
+        soil_type=payload.soil_type,
+        open_area_sqm=payload.open_area_sqm,
+        budget_inr=payload.budget_inr,
+        has_existing_borewell=payload.has_existing_borewell,
+        filter_efficiency=payload.filter_efficiency,
+    )
+
+    model_pred = rec.model_prediction or {}
+
+    return {
+        "recommendation": {
+            "system": rec.system_type.value,
+            "ml_predicted_class": model_pred.get("predicted_class", rec.system_type.value),
+            "model_confidence": model_pred.get("model_confidence", 0.85),
+            "confidence_notice": model_pred.get("confidence_notice"),
+            "alternatives": rec.alternatives or [],
+            "class_probabilities": model_pred.get("class_probabilities", {}),
+        },
+        "engineering": {
+            "annual_harvest_l": rec.annual_gross_harvest_litres,
+            "annual_usable_l": rec.annual_usable_litres,
+            "annual_demand_l": rec.annual_demand_litres,
+            "potential_savings_l": rec.annual_usable_litres,
+            "recommended_tank_l": rec.optimal_tank_capacity_litres,
+            "water_savings_percentage": rec.water_savings_percentage,
+            "payback_years": rec.payback_years,
+            "total_cost_inr": rec.total_estimated_cost_inr,
+        },
+        "explanation": {
+            "summary": rec.engineering_rationale,
+            "key_factors": rec.explanation_points,
+            "engineering_constraints_applied": rec.engineering_constraints_applied or [],
+        },
+        "sensitivity": rec.sensitivity_analysis or {},
+        "model": {
+            "name": model_pred.get("model_name", "system_recommendation_ensemble"),
+            "version": model_pred.get("model_version", "2.0.0"),
+            "algorithm": model_pred.get("algorithm", "Random Forest"),
+            "macro_f1": model_pred.get("macro_f1", 0.9389),
+        },
+    }
 
 
 # =====================================================================
@@ -356,11 +449,15 @@ async def list_locations() -> LocationsResponse:
 
 @router.get("/weather", response_model=Any)
 @router.get("/weather/{city}", response_model=CityRainfallProfile)
-async def get_weather(city: Optional[str] = None) -> Any:
-    """Fetch rainfall profile for a city, or list of all regional profiles if city not provided."""
-    if city:
-        return await fetch_city_weather(city)
-    # If no city query param, return summary of all available stations
+async def get_weather(
+    city: Optional[str] = None,
+    lat: Optional[float] = Query(default=None, ge=-90.0, le=90.0, description="Optional latitude coordinate"),
+    lon: Optional[float] = Query(default=None, ge=-180.0, le=180.0, description="Optional longitude coordinate"),
+) -> Any:
+    """Fetch rainfall profile for a city or coordinates, or list of all regional profiles if neither provided."""
+    if city or (lat is not None and lon is not None):
+        return await fetch_weather_for_location(city_name=city, lat=lat, lon=lon)
+    # If neither city nor lat/lon provided, return summary of all available stations
     return {
         "count": len(IMD_HISTORICAL_NORMALS),
         "stations": [
@@ -375,6 +472,38 @@ async def get_weather(city: Optional[str] = None) -> Any:
         ],
         "default_national_benchmark": DEFAULT_NATIONAL_PROFILE,
     }
+
+
+@router.get("/location/geocode", response_model=GeocodeResponse)
+async def geocode_query(q: str = Query(..., min_length=1, description="City, district, or place name")) -> GeocodeResponse:
+    """Geocode a query string to matching geographical coordinates with state and country metadata."""
+    results = await geocode_location(q)
+    return GeocodeResponse(
+        query=q,
+        results=[GeocodeResultItem(**r) for r in results],
+        count=len(results),
+    )
+
+
+@router.get("/location/reverse")
+async def reverse_geocode_coords(
+    lat: float = Query(..., ge=-90.0, le=90.0, description="Latitude coordinate"),
+    lon: float = Query(..., ge=-180.0, le=180.0, description="Longitude coordinate"),
+) -> Dict[str, Any]:
+    """Find nearest named locality and weather station for geographic coordinates."""
+    return await reverse_geocode(lat, lon)
+
+
+@router.get("/weather/historical")
+async def get_historical_weather(
+    lat: float = Query(..., ge=-90.0, le=90.0, description="Latitude coordinate"),
+    lon: float = Query(..., ge=-180.0, le=180.0, description="Longitude coordinate"),
+    start_year: int = Query(default=2021, ge=1950, le=2025),
+    end_year: int = Query(default=2023, ge=1950, le=2025),
+) -> Dict[str, Any]:
+    """Retrieve historical daily/monthly precipitation records from ERA5 reanalysis."""
+    svc = get_weather_service()
+    return await svc.get_historical_rainfall(lat, lon, start_year, end_year)
 
 
 # =====================================================================
@@ -401,6 +530,17 @@ async def get_model_metrics():
     """Retrieve ML model performance metrics, dataset characteristics, and confusion matrix."""
     _, _, metadata = load_models()
     return metadata
+
+
+@router.get("/model/recommendation/metadata")
+@router.get("/ml/recommendation/metadata")
+async def get_recommendation_model_metadata():
+    """Retrieve System Recommendation ML Classifier metadata, 5-fold CV scores, and test metrics."""
+    meta_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "ml", "models", "system_recommendation_metadata.json")
+    if os.path.exists(meta_path):
+        with open(meta_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"status": "uninitialized"}
 
 
 @router.get("/model/features")

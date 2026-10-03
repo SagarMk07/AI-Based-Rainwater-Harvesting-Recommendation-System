@@ -1,6 +1,6 @@
 # AI-Based Rainwater Harvesting Intelligence & Optimization System
 
-An engineering-grade environmental intelligence system combining hydrological engineering principles, time-series machine learning, water-balance simulation, and multi-criteria optimization to deliver transparent, data-driven rainwater harvesting recommendations.
+An engineering-grade environmental intelligence system combining hydrological engineering principles, time-series machine learning, water-balance simulation, multi-criteria optimization, and real-world location intelligence to deliver transparent, data-driven rainwater harvesting recommendations.
 
 ---
 
@@ -10,62 +10,80 @@ A core rule of this system:
 
 > **Do NOT use machine learning for calculations that can be accurately performed using engineering formulas.**
 
-The system is partitioned into four decoupled modules:
-1. **Machine Learning**: Applied strictly to uncertain, weather-driven time-series forecasting (historical rainfall estimation using chronological splits, Random Forest, and Linear Regression baseline).
-2. **Engineering Calculations**: Applied to deterministic physical formulas (Gross Harvest Potential, Collectable Water, Usable Water, Runoff Coefficients, Occupancy Demand).
-3. **Simulation & Optimization**: 12-month iterative water-balance simulation across candidate storage capacities ($500\,\text{L}$ to $50,000\,\text{L}$) evaluated against shortage, overflow, utilization, and budget penalties.
-4. **Recommendation Engine**: Multi-criteria synthesis evaluating storage vs recharge (pits, trenches, wells, hybrid) with dynamic explanations and cost-benefit trade-offs.
+The system is partitioned into decoupled layers:
+1. **Machine Learning Layer**:
+   - **System Recommendation Classifier**: Pure NumPy Random Forest Classifier (94.9% accuracy, 0.9389 macro F1) trained on 5,400 balanced property records across four system types (`Storage Tank`, `Recharge Pit`, `Recharge Well`, `Hybrid System`).
+   - **Time-Series Rainfall Predictor**: Autoregressive lag model forecasting 12-month precipitation curves from geographic coordinates and elevation.
+2. **Deterministic Engineering Engine**:
+   - Gross Harvest Potential: $V_{\text{gross}} = P \times A \times C$
+   - Collectable Water: $V_{\text{collectable}} = V_{\text{gross}} \times \eta_{\text{filter}}$
+   - Runoff Coefficients: RCC (0.85), Galvanized Sheet (0.90), Clay Tiles (0.80), Paver Blocks (0.70)
+   - Dynamic Demand Modeling: Occupancy demand ($120\text{--}150\text{ L/person/day}$) calibrated to monthly calendar days.
+3. **Simulation & Optimization Layer**:
+   - 12-month iterative hydrological water balance simulation tracking inflows, storage states, supplied water, overflows, and deficits.
+   - Multi-objective Pareto optimization across candidate storage capacities ($1{,}000\text{--}50{,}000\text{ L}$) with budget penalty constraints.
+   - **Three-Tier Practical Sizing**:
+     - *Minimum Practical*: Sized for 3–7 days buffer reserve during rain spells.
+     - *Recommended Optimum*: Maximum demand coverage balancing capital payback (< 10 yrs).
+     - *Upper Practical*: Marginal gain threshold ($\Delta \text{Coverage} < 2\% / 5{,}000\text{ L}$) where return sharply plateaus.
+4. **Real-World Location Intelligence & Meteorology**:
+   - **Live Telemetry & Reanalysis**: Open-Meteo ERA5 historical reanalysis (2021–2023) and high-resolution ECMWF 7-day precipitation forecasts (Zero API keys required).
+   - **Offline Resilience**: Verified India Meteorological Department (IMD) 30-year climatological normals with nearest-station Haversine matching.
+   - **Two-Tier Caching**: High-performance in-memory cache and persistent SQLite disk cache (`data/weather_cache.db`).
+   - **Geocoding & Map Pinning**: Open-Meteo Geocoding API with local gazetteer fallback, draggable Leaflet map marker, and browser GPS geolocation.
+   - **Seasonal Harvest Intelligence**: "When Can You Harvest the Most?" breakdown analyzing monsoon vs dry season yield splits.
 
 ---
 
-## 2. Project Directory Structure
+## 2. Directory Structure
 
 ```
 rainwater-ai/
 ├── backend/
 │   ├── app/
-│   │   ├── api/             # FastAPI routers (health, future analyze, optimize, etc.)
-│   │   ├── calculations/    # Deterministic engineering formulas (Phase 4)
-│   │   ├── database/        # Supabase / DB connection manager with offline fallback
-│   │   ├── ml/              # Machine learning inference pipelines (Phase 3)
-│   │   ├── optimization/    # Storage tank optimization algorithms (Phase 6)
-│   │   ├── recommendations/ # Multi-criteria decision engine (Phase 8)
+│   │   ├── api/             # REST endpoints (full analysis, weather, geocoding, ML metrics)
+│   │   ├── calculations/    # Deterministic engineering formulas (runoff, demand, water balance)
+│   │   ├── database/        # SQLite cache & Supabase persistence with RLS
+│   │   ├── ml/              # Pure NumPy inference models (AppLocker-safe)
+│   │   ├── optimization/    # Multi-tier storage tank capacity optimization
+│   │   ├── recommendations/ # Multi-criteria decision engine & explainability
 │   │   ├── schemas/         # Pydantic v2 schemas for requests & responses
-│   │   ├── services/        # Business logic & weather services (Phase 2 & 11)
+│   │   ├── services/        # WeatherService abstraction, Open-Meteo, IMD normals, geocoding
 │   │   ├── utils/           # Logging & utility helpers
 │   │   ├── config.py        # Pydantic Settings & environment variables
 │   │   └── main.py          # FastAPI application entry point & CORS
 │   └── requirements.txt     # Python backend dependencies
 ├── data/
 │   ├── raw/                 # Raw rainfall & weather datasets
-│   └── processed/           # Cleaned & feature-engineered data
+│   ├── processed/           # 5,400 synthetic balanced recommendation records
+│   └── weather_cache.db     # Persistent SQLite cache for weather summaries
 ├── ml/
-│   ├── training/            # Model training & hyperparameter search
-│   ├── models/              # Serialized models (.joblib) & metadata
-│   └── evaluation/          # Chronological test split metrics (MAE, RMSE, R²)
+│   ├── models_core.py       # Pure NumPy Random Forest & Gradient Boosting implementations
+│   ├── preprocessing.py     # Stateful preprocessor & feature encoder
+│   ├── train_model.py       # 5-fold cross-validation & model training
+│   ├── evaluate_model.py    # Evaluation reports & confusion matrix generation
+│   └── models/              # Serialized model artifacts (.joblib, .json)
 ├── frontend/
 │   ├── src/
-│   │   ├── components/      # Reusable React components (Navbar, Footer, StatusCard)
-│   │   ├── layouts/         # RootLayout with health state injection
-│   │   ├── pages/           # HomePage, NotFoundPage, future Wizard & Dashboards
-│   │   ├── services/        # Axios API client & typed services
-│   │   ├── hooks/           # useHealth and reactive data hooks
+│   │   ├── components/      # React components (ResultsDashboard, RainfallIntelligence, PropertyMap)
+│   │   ├── layouts/         # RootLayout with persistent system state
+│   │   ├── pages/           # HomePage, NotFoundPage
+│   │   ├── services/        # Axios API client, typed analysis & geocoding services
 │   │   ├── types/           # TypeScript interfaces
-│   │   ├── utils/           # Tailwind class merging & formatting utilities
-│   │   ├── App.tsx          # React Router entry point
-│   │   └── main.tsx         # React DOM mount
+│   │   └── App.tsx          # React application root
 │   ├── package.json
-│   ├── tailwind.config.js
 │   └── vite.config.ts       # Vite configuration with /api backend proxy
 ├── tests/
-│   ├── test_config.py       # Configuration unit tests
-│   └── test_health.py       # Health check & root API unit tests
+│   ├── test_api.py              # API endpoint integration tests
+│   ├── test_calculations.py     # Deterministic hydrological formula tests
+│   ├── test_ml_recommendations.py # ML inference & edge case tests
+│   ├── test_weather.py          # Weather fallback & network failure tests
+│   └── test_weather_service.py  # Phase 5 location intelligence 8 scenario suite
 ├── docs/
-│   └── architecture.md      # Detailed system architecture specifications
-├── .env.example             # Documented environment variables template
-├── .gitignore               # Multi-language gitignore
-├── docker-compose.yml       # Production container orchestration
-└── README.md                # Project documentation
+│   ├── architecture.md      # Detailed system architecture specifications
+│   ├── ml-model.md          # Machine learning methodology & evaluation report
+│   └── weather-data.md      # Real-world data & location intelligence guide
+└── README.md
 ```
 
 ---
@@ -76,64 +94,55 @@ rainwater-ai/
 - Python 3.11+
 - Node.js 18+ & npm
 
-### Backend Setup
-1. Create and activate a Python virtual environment:
+### Running the Backend
+1. Activate virtual environment:
    ```powershell
-   python -m venv .venv
    .\.venv\Scripts\Activate.ps1
    ```
-2. Install dependencies:
+2. Start the FastAPI development server:
    ```powershell
-   python -m pip install -r backend/requirements.txt
+   .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
    ```
-3. Copy environment settings:
-   ```powershell
-   copy .env.example .env
-   ```
-4. Start the FastAPI development server:
-   ```powershell
-   python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-   Interactive API docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
+   Interactive Swagger API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-### Frontend Setup
-1. Navigate to the frontend directory:
+### Running the Frontend
+1. Open a new terminal in `frontend/`:
    ```powershell
    cd frontend
-   npm install
-   ```
-2. Start the Vite development server:
-   ```powershell
    npm run dev
    ```
    Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 4. Running Automated Tests
+## 4. Automated Test Suite
 
-Run the test suite via pytest:
+Run all 47 unit and integration tests via pytest:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -v
 ```
 
+### Verified Scenarios:
+- **Exact Benchmark Test Case**: $200\,\text{m}^2 \times 900\,\text{mm} \times 0.85 = 153{,}000\,\text{L/yr}$.
+- **Water Demand Benchmark**: $5 \times 120\,\text{L/day} = 600\,\text{L/day} \to 219{,}000\,\text{L/yr}$.
+- **Storage Constraints**: Usable water bounded by physical tank capacity and monthly rainfall timing.
+- **ML Probability Calibration**: Softmax probabilities sum to $1.0$; boundary edge cases tested (very small roof, large commercial roof, arid climate, high rainfall, zero open area, low budget).
+- **Phase 5 Location Intelligence Suite**:
+  1. High Rainfall Location (Kochi / Mumbai)
+  2. Semi-Arid Location (Jaipur)
+  3. Moderate Plateau Climate (Bengaluru)
+  4. Invalid / Out-of-bounds Coordinates
+  5. Simulated Network Failure & Timeout Fallback
+  6. Geocoding & Reverse Geocoding Resolution
+  7. Interactive Marker Drag & Recalculation
+  8. Cache Hit vs Cache Miss Performance (< 50ms)
+
 ---
 
-## 5. Implementation Roadmap
+## 5. Completed Implementation Milestones
 
-- [x] **Phase 1: Project Foundation** (Current)
-- [ ] **Phase 2: Data Pipeline**
-- [ ] **Phase 3: Rainfall ML**
-- [ ] **Phase 4: Water Engine**
-- [ ] **Phase 5: Water Balance**
-- [ ] **Phase 6: Storage Optimization**
-- [ ] **Phase 7: Suitability Analysis**
-- [ ] **Phase 8: Recommendation Engine**
-- [ ] **Phase 9: Cost / Savings**
-- [ ] **Phase 10: Explainability**
-- [ ] **Phase 11: Backend API**
-- [ ] **Phase 12: Database / Auth**
-- [ ] **Phase 13: Frontend**
-- [ ] **Phase 14: Integration**
-- [ ] **Phase 15: Testing**
-- [ ] **Phase 16: Final Polish**
+- [x] **Phase 1: Project Foundation & Clean Architecture**
+- [x] **Phase 2: Core Engineering Calculations & Water Balance Engine**
+- [x] **Phase 3: Premium UI/UX Environmental Design Overhaul**
+- [x] **Phase 4: AI/ML Validation & Explainable Recommendation Engine**
+- [x] **Phase 5: Real-World Data & Location Intelligence**

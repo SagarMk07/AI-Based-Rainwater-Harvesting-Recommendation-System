@@ -1,3 +1,10 @@
+export interface DailyWeatherForecast {
+  date: string
+  rainfall_mm: number
+  temp_max_c?: number | null
+  temp_min_c?: number | null
+}
+
 export interface CityRainfallProfile {
   city: string
   state: string
@@ -8,6 +15,17 @@ export interface CityRainfallProfile {
   is_fallback: boolean
   weather_source: string
   warning_notice: string | null
+  latitude?: number | null
+  longitude?: number | null
+  wettest_month?: string | null
+  driest_month?: string | null
+  wet_season_rainfall_mm?: number | null
+  dry_season_rainfall_mm?: number | null
+  rainy_days_count?: number | null
+  variability_cv?: number | null
+  data_period?: string | null
+  last_updated?: string | null
+  forecast_next_7_days?: DailyWeatherForecast[] | null
 }
 
 export interface RechargeStructureDesign {
@@ -37,6 +55,10 @@ export interface SystemRecommendation {
   explanation_points: string[]
   engineering_rationale: string
   suitability_score: number
+  model_prediction?: any
+  sensitivity_analysis?: any
+  alternatives?: any[]
+  engineering_constraints_applied?: string[]
 }
 
 export interface MonthlyBalanceStep {
@@ -64,6 +86,11 @@ export interface WaterBalanceResult {
   overflow_percentage: number
   average_storage_utilization_pct: number
   monthly_breakdown: MonthlyBalanceStep[]
+  wet_season_harvest_litres?: number | null
+  dry_season_harvest_litres?: number | null
+  peak_harvest_month?: string | null
+  lowest_harvest_month?: string | null
+  seasonal_harvest_window?: string | null
 }
 
 export interface CandidateEvaluation {
@@ -77,6 +104,14 @@ export interface CandidateEvaluation {
   annual_savings_inr: number
   payback_years: number
   optimization_score: number
+}
+
+export interface SizingTierInfo {
+  capacity_litres: number
+  demand_met_pct: number
+  estimated_cost_inr: number
+  payback_years: number
+  rationale: string
 }
 
 export interface ExplainabilityResponse {
@@ -96,10 +131,17 @@ export interface AnalysisResponse {
   tank_optimization_candidates: CandidateEvaluation[]
   explainability: ExplainabilityResponse
   ml_forecast?: any
+  sizing_tiers?: {
+    minimum?: SizingTierInfo
+    recommended?: SizingTierInfo
+    upper_practical?: SizingTierInfo
+  } | null
 }
 
 export interface AnalysisFormData {
   city: string
+  latitude?: number
+  longitude?: number
   annual_rainfall_mm: number
   roof_area_sqm: number
   roof_type: string
@@ -110,4 +152,14 @@ export interface AnalysisFormData {
   has_existing_borewell: boolean
   budget_inr: number
   filter_efficiency: number
+}
+
+export interface GeocodeResult {
+  name: string
+  state?: string
+  country?: string
+  latitude: number
+  longitude: number
+  elevation?: number
+  source?: string
 }

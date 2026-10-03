@@ -1,0 +1,333 @@
+{
+  "model_name": "system_recommendation_ensemble",
+  "model_version": "2.0.0",
+  "algorithm": "Random Forest",
+  "trained_at": "2026-10-01T10:46:14.075589+00:00",
+  "dataset": {
+    "total_samples": 5400,
+    "train_samples": 4322,
+    "test_samples": 1078,
+    "target_classes": [
+      "Hybrid System",
+      "Recharge Pit",
+      "Recharge Well",
+      "Storage Tank"
+    ],
+    "features_count": 28,
+    "features": [
+      "annual_rainfall_mm",
+      "roof_area_m2",
+      "runoff_coefficient",
+      "occupants",
+      "daily_water_demand_l",
+      "annual_water_demand_l",
+      "open_area_m2",
+      "budget",
+      "estimated_harvest_l",
+      "harvest_to_demand_ratio",
+      "roof_to_open_area_ratio",
+      "estimated_monthly_harvest",
+      "estimated_annual_savings",
+      "roof_type_rcc",
+      "roof_type_metal",
+      "roof_type_tiles",
+      "roof_type_pavers",
+      "soil_type_sandy",
+      "soil_type_loamy",
+      "soil_type_silty",
+      "soil_type_clay",
+      "soil_type_rocky",
+      "property_type_residential",
+      "property_type_commercial",
+      "property_type_institutional",
+      "property_type_industrial",
+      "drainage_available",
+      "groundwater_recharge_preference"
+    ]
+  },
+  "cross_validation_5_fold": {
+    "Logistic Regression": {
+      "mean_accuracy": 0.8523800000000001,
+      "std_accuracy": 0.00842339598974192,
+      "mean_macro_f1": 0.83454,
+      "std_macro_f1": 0.009210993431764031
+    },
+    "Random Forest": {
+      "mean_accuracy": 0.95326,
+      "std_accuracy": 0.0020343057783921955,
+      "mean_macro_f1": 0.94622,
+      "std_macro_f1": 0.002417767565337901
+    },
+    "Gradient Boosting": {
+      "mean_accuracy": 0.8940400000000001,
+      "std_accuracy": 0.010743295583758285,
+      "mean_macro_f1": 0.8681800000000001,
+      "std_macro_f1": 0.014936853751710893
+    }
+  },
+  "test_metrics": {
+    "Logistic Regression": {
+      "accuracy": 0.8516,
+      "macro_precision": 0.8279,
+      "macro_recall": 0.8431,
+      "macro_f1": 0.8317,
+      "confusion_matrix": [
+        [
+          288,
+          3,
+          1,
+          9
+        ],
+        [
+          10,
+          101,
+          16,
+          7
+        ],
+        [
+          20,
+          9,
+          218,
+          4
+        ],
+        [
+          30,
+          43,
+          8,
+          311
+        ]
+      ],
+      "per_class": {
+        "0": {
+          "precision": 0.8276,
+          "recall": 0.9568,
+          "f1_score": 0.8875,
+          "support": 301
+        },
+        "1": {
+          "precision": 0.6474,
+          "recall": 0.7537,
+          "f1_score": 0.6966,
+          "support": 134
+        },
+        "2": {
+          "precision": 0.8971,
+          "recall": 0.8685,
+          "f1_score": 0.8826,
+          "support": 251
+        },
+        "3": {
+          "precision": 0.9396,
+          "recall": 0.7934,
+          "f1_score": 0.8603,
+          "support": 392
+        }
+      }
+    },
+    "Random Forest": {
+      "accuracy": 0.949,
+      "macro_precision": 0.9381,
+      "macro_recall": 0.9399,
+      "macro_f1": 0.9389,
+      "confusion_matrix": [
+        [
+          298,
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          117,
+          4,
+          12
+        ],
+        [
+          4,
+          5,
+          241,
+          1
+        ],
+        [
+          8,
+          12,
+          5,
+          367
+        ]
+      ],
+      "per_class": {
+        "0": {
+          "precision": 0.9582,
+          "recall": 0.99,
+          "f1_score": 0.9739,
+          "support": 301
+        },
+        "1": {
+          "precision": 0.8731,
+          "recall": 0.8731,
+          "f1_score": 0.8731,
+          "support": 134
+        },
+        "2": {
+          "precision": 0.9602,
+          "recall": 0.9602,
+          "f1_score": 0.9602,
+          "support": 251
+        },
+        "3": {
+          "precision": 0.9607,
+          "recall": 0.9362,
+          "f1_score": 0.9483,
+          "support": 392
+        }
+      }
+    },
+    "Gradient Boosting": {
+      "accuracy": 0.9091,
+      "macro_precision": 0.9196,
+      "macro_recall": 0.8708,
+      "macro_f1": 0.8875,
+      "confusion_matrix": [
+        [
+          300,
+          0,
+          0,
+          1
+        ],
+        [
+          5,
+          86,
+          7,
+          36
+        ],
+        [
+          6,
+          2,
+          230,
+          13
+        ],
+        [
+          23,
+          4,
+          1,
+          364
+        ]
+      ],
+      "per_class": {
+        "0": {
+          "precision": 0.8982,
+          "recall": 0.9967,
+          "f1_score": 0.9449,
+          "support": 301
+        },
+        "1": {
+          "precision": 0.9348,
+          "recall": 0.6418,
+          "f1_score": 0.7611,
+          "support": 134
+        },
+        "2": {
+          "precision": 0.9664,
+          "recall": 0.9163,
+          "f1_score": 0.9407,
+          "support": 251
+        },
+        "3": {
+          "precision": 0.8792,
+          "recall": 0.9286,
+          "f1_score": 0.9032,
+          "support": 392
+        }
+      }
+    }
+  },
+  "selected_model_metrics": {
+    "accuracy": 0.949,
+    "macro_precision": 0.9381,
+    "macro_recall": 0.9399,
+    "macro_f1": 0.9389,
+    "cv_macro_f1": "0.9462 \u00b1 0.0024",
+    "confusion_matrix": [
+      [
+        298,
+        0,
+        1,
+        2
+      ],
+      [
+        1,
+        117,
+        4,
+        12
+      ],
+      [
+        4,
+        5,
+        241,
+        1
+      ],
+      [
+        8,
+        12,
+        5,
+        367
+      ]
+    ],
+    "per_class": {
+      "0": {
+        "precision": 0.9582,
+        "recall": 0.99,
+        "f1_score": 0.9739,
+        "support": 301
+      },
+      "1": {
+        "precision": 0.8731,
+        "recall": 0.8731,
+        "f1_score": 0.8731,
+        "support": 134
+      },
+      "2": {
+        "precision": 0.9602,
+        "recall": 0.9602,
+        "f1_score": 0.9602,
+        "support": 251
+      },
+      "3": {
+        "precision": 0.9607,
+        "recall": 0.9362,
+        "f1_score": 0.9483,
+        "support": 392
+      }
+    }
+  },
+  "feature_importances": {
+    "open_area_m2": 0.0791,
+    "budget": 0.0689,
+    "estimated_annual_savings": 0.0633,
+    "estimated_monthly_harvest": 0.0625,
+    "roof_area_m2": 0.0602,
+    "estimated_harvest_l": 0.0592,
+    "roof_to_open_area_ratio": 0.0584,
+    "occupants": 0.048,
+    "annual_water_demand_l": 0.0476,
+    "harvest_to_demand_ratio": 0.0476,
+    "annual_rainfall_mm": 0.0447,
+    "daily_water_demand_l": 0.0443,
+    "groundwater_recharge_preference": 0.0435,
+    "soil_type_clay": 0.0426,
+    "soil_type_rocky": 0.0346,
+    "soil_type_loamy": 0.0319,
+    "soil_type_sandy": 0.0304,
+    "runoff_coefficient": 0.0253,
+    "soil_type_silty": 0.0238,
+    "roof_type_rcc": 0.0164,
+    "drainage_available": 0.0132,
+    "property_type_residential": 0.0118,
+    "roof_type_metal": 0.0114,
+    "roof_type_tiles": 0.0103,
+    "property_type_commercial": 0.0074,
+    "roof_type_pavers": 0.0064,
+    "property_type_institutional": 0.0041,
+    "property_type_industrial": 0.0031
+  }
+}

@@ -8,6 +8,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Calculator,
+  Navigation,
+  Loader2,
+  Radio,
 } from 'lucide-react'
 import type { AnalysisFormData, CityRainfallProfile } from '../types/analysis'
 import { analysisService } from '../services/analysisService'
@@ -28,16 +31,16 @@ const WIZARD_STEPS: Step[] = [
 ]
 
 const POPULAR_CITIES = [
-  { name: 'Bengaluru', state: 'Karnataka', rain: 924 },
-  { name: 'Mumbai', state: 'Maharashtra', rain: 2213 },
-  { name: 'Delhi', state: 'NCR', rain: 797 },
-  { name: 'Chennai', state: 'Tamil Nadu', rain: 1382 },
-  { name: 'Hyderabad', state: 'Telangana', rain: 812 },
-  { name: 'Pune', state: 'Maharashtra', rain: 741 },
-  { name: 'Jaipur', state: 'Rajasthan', rain: 602 },
-  { name: 'Kolkata', state: 'West Bengal', rain: 1735 },
-  { name: 'Kochi', state: 'Kerala', rain: 3014 },
-  { name: 'Ahmedabad', state: 'Gujarat', rain: 782 },
+  { name: 'Bengaluru', state: 'Karnataka', rain: 924, lat: 12.9716, lon: 77.5946 },
+  { name: 'Mumbai', state: 'Maharashtra', rain: 2213, lat: 18.9220, lon: 72.8347 },
+  { name: 'Delhi', state: 'NCR', rain: 797, lat: 28.6139, lon: 77.2090 },
+  { name: 'Chennai', state: 'Tamil Nadu', rain: 1382, lat: 13.0827, lon: 80.2707 },
+  { name: 'Hyderabad', state: 'Telangana', rain: 812, lat: 17.3850, lon: 78.4867 },
+  { name: 'Pune', state: 'Maharashtra', rain: 741, lat: 18.5204, lon: 73.8567 },
+  { name: 'Jaipur', state: 'Rajasthan', rain: 602, lat: 26.9124, lon: 75.7873 },
+  { name: 'Kolkata', state: 'West Bengal', rain: 1735, lat: 22.5726, lon: 88.3639 },
+  { name: 'Kochi', state: 'Kerala', rain: 3014, lat: 9.9312, lon: 76.2673 },
+  { name: 'Ahmedabad', state: 'Gujarat', rain: 782, lat: 23.0225, lon: 72.5714 },
 ]
 
 const ROOF_TYPES = [
@@ -111,6 +114,8 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
   const [formData, setFormData] = useState<AnalysisFormData>({
     city: 'Bengaluru',
+    latitude: 12.9716,
+    longitude: 77.5946,
     annual_rainfall_mm: 924,
     roof_area_sqm: 200,
     roof_type: 'rcc',
@@ -126,13 +131,15 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
   const [weatherInfo, setWeatherInfo] = useState<CityRainfallProfile | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [geolocationLoading, setGeolocationLoading] = useState(false)
+  const [geolocationError, setGeolocationError] = useState<string | null>(null)
 
-  // Fetch weather profile whenever city changes
+  // Fetch weather profile whenever city or coordinates change
   useEffect(() => {
     let isMounted = true
     setWeatherLoading(true)
     analysisService
-      .getCityWeather(formData.city)
+      .getCityWeather(formData.city, formData.latitude, formData.longitude)
       .then((info) => {
         if (isMounted) {
           setWeatherInfo(info)
@@ -150,7 +157,53 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
     return () => {
       isMounted = false
     }
-  }, [formData.city])
+  }, [formData.city, formData.latitude, formData.longitude])
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeolocationError('Geolocation is not supported by your browser.')
+      return
+    }
+    setGeolocationLoading(true)
+    setGeolocationError(null)
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lon = pos.coords.longitude
+        try {
+          const rev = await analysisService.reverseGeocode(lat, lon)
+          const resolvedCity = rev?.city || `GPS (${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`
+          const weather = await analysisService.getCityWeather(resolvedCity, lat, lon)
+          setWeatherInfo(weather)
+          setFormData((prev) => ({
+            ...prev,
+            city: resolvedCity,
+            latitude: lat,
+            longitude: lon,
+            annual_rainfall_mm: weather.annual_rainfall_mm,
+          }))
+        } catch {
+          setGeolocationError('Failed to synchronize environmental records for acquired coordinates.')
+        } finally {
+          setGeolocationLoading(false)
+        }
+      },
+      (err) => {
+        setGeolocationLoading(false)
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeolocationError('GPS location permission denied. Please choose a city or enter coordinates manually.')
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setGeolocationError('Location position unavailable. Please choose a city manually.')
+        } else if (err.code === err.TIMEOUT) {
+          setGeolocationError('Location acquisition timed out. Please choose a city manually.')
+        } else {
+          setGeolocationError('Could not acquire current location. Please choose a city manually.')
+        }
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    )
+  }
 
   // Instantaneous theoretical calculation preview
   const currentCoeff = ROOF_TYPES.find((r) => r.id === formData.roof_type)?.coeff || 0.85
@@ -337,42 +390,78 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
         {/* STEP 1: LOCATION & CLIMATE */}
         {currentStep === 1 && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div>
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-2">
-                Select City or Geographic Station
-                <InfoTooltip content="Uses 30-year IMD climatological normal precipitation datasets." />
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {POPULAR_CITIES.map((c) => (
-                  <button
-                    key={c.name}
-                    type="button"
-                    onClick={() =>
-                      setFormData({
-                        ...formData,
-                        city: c.name,
-                        annual_rainfall_mm: c.rain,
-                      })
-                    }
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      formData.city.toLowerCase() === c.name.toLowerCase()
-                        ? 'border-forest-600 bg-forest-50/70 text-forest-950 font-bold ring-2 ring-forest-500/20 shadow-sm'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <span className="block text-xs font-bold">{c.name}</span>
-                    <span className="block text-[11px] text-slate-400 font-mono mt-0.5">
-                      {c.rain} mm/yr
-                    </span>
-                  </button>
-                ))}
+            {/* Geolocation Error Alert if any */}
+            {geolocationError && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 flex items-start space-x-2 animate-in fade-in">
+                <AlertCircle className="h-4 w-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold">Geolocation Notice:</span>
+                  <p>{geolocationError}</p>
+                </div>
               </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                Select City or Geographic Station
+                <InfoTooltip content="Uses Open-Meteo ERA5 real-world telemetry with 30-year IMD climatological normal fallback." />
+              </label>
+
+              {/* Use My Location Browser Geolocation Button */}
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                disabled={geolocationLoading}
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-forest-300 bg-forest-50 hover:bg-forest-100 text-forest-800 text-xs font-bold transition-all shadow-subtle disabled:opacity-60"
+              >
+                {geolocationLoading ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-forest-600" />
+                    <span>Acquiring GPS Position...</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="h-3.5 w-3.5 text-forest-600" />
+                    <span>Use My Location (GPS)</span>
+                  </>
+                )}
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Popular Cities Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {POPULAR_CITIES.map((c) => (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      city: c.name,
+                      latitude: c.lat,
+                      longitude: c.lon,
+                      annual_rainfall_mm: c.rain,
+                    })
+                  }
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    formData.city.toLowerCase() === c.name.toLowerCase()
+                      ? 'border-forest-600 bg-forest-50/70 text-forest-950 font-bold ring-2 ring-forest-500/20 shadow-sm'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <span className="block text-xs font-bold">{c.name}</span>
+                  <span className="block text-[11px] text-slate-400 font-mono mt-0.5">
+                    {c.rain} mm/yr
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Location & Coordinates */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Custom Location Name
+                  Location / City Name
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -387,12 +476,48 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Latitude (°N) & Longitude (°E)
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Lat"
+                    value={formData.latitude !== undefined && formData.latitude !== null ? formData.latitude : ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        latitude: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    placeholder="Lon"
+                    value={formData.longitude !== undefined && formData.longitude !== null ? formData.longitude : ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        longitude: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                  />
+                </div>
+              </div>
+
+              <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold text-slate-700">
-                    Annual Precipitation (mm/year)
+                    Annual Rainfall (mm)
                   </label>
                   {weatherLoading && (
-                    <span className="text-[11px] text-slate-400 font-mono">Syncing IMD...</span>
+                    <span className="text-[11px] text-sky-600 font-mono flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Syncing...
+                    </span>
                   )}
                 </div>
                 <div className="relative">
@@ -416,17 +541,40 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               </div>
             </div>
 
+            {/* Weather Telemetry Source Card */}
             {weatherInfo && (
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <span className="font-semibold text-slate-800">
-                    {weatherInfo.city} Station Climatological Normal
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2">
+                    {weatherInfo.is_fallback ? (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                        IMD OFFLINE FALLBACK
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1">
+                        <Radio className="h-2.5 w-2.5 text-emerald-600 animate-pulse" />
+                        <span>LIVE ERA5 TELEMETRY</span>
+                      </span>
+                    )}
+                    <span className="text-xs font-bold text-slate-800">
+                      {weatherInfo.city} Station Environmental Records
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-water-700 bg-water-50 px-2.5 py-1 rounded-lg border border-water-200 text-xs self-start sm:self-auto">
+                    {weatherInfo.annual_rainfall_mm} mm/year
                   </span>
-                  <p className="text-[11px] text-slate-500">{weatherInfo.weather_source}</p>
                 </div>
-                <span className="font-mono font-bold text-water-700 bg-water-50 px-2 py-1 rounded border border-water-200 text-xs">
-                  {weatherInfo.annual_rainfall_mm} mm
-                </span>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 font-mono">
+                  <span>Provider: {weatherInfo.weather_source.split(' ')[0]}</span>
+                  <span>Period: {weatherInfo.data_period || '30-Year Normal'}</span>
+                  {weatherInfo.wettest_month && (
+                    <span>Peak Month: <strong>{weatherInfo.wettest_month}</strong></span>
+                  )}
+                  {weatherInfo.rainy_days_count && (
+                    <span>Rainy Days: <strong>{weatherInfo.rainy_days_count} d/yr</strong></span>
+                  )}
+                </div>
               </div>
             )}
           </div>

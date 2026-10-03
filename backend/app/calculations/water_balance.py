@@ -1,6 +1,6 @@
 """12-month iterative hydrological water balance simulation engine."""
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from backend.app.calculations.demand import DAYS_IN_MONTHS, MONTH_NAMES
 
@@ -30,6 +30,11 @@ class WaterBalanceResult(BaseModel):
     overflow_percentage: float
     average_storage_utilization_pct: float
     monthly_breakdown: List[MonthlyBalanceStep]
+    wet_season_harvest_litres: Optional[float] = None
+    dry_season_harvest_litres: Optional[float] = None
+    peak_harvest_month: Optional[str] = None
+    lowest_harvest_month: Optional[str] = None
+    seasonal_harvest_window: Optional[str] = None
 
 
 def simulate_water_balance(
@@ -128,6 +133,22 @@ def simulate_water_balance(
     demand_met_pct = (total_supplied / total_demand * 100.0) if total_demand > 0 else 0.0
     overflow_pct = (total_overflow / total_inflow * 100.0) if total_inflow > 0 else 0.0
 
+    # Calculate seasonal harvest intelligence
+    inflows = [step.inflow_litres for step in monthly_steps]
+    peak_idx = inflows.index(max(inflows)) if inflows else 0
+    lowest_idx = inflows.index(min(inflows)) if inflows else 0
+
+    # 4 wettest consecutive months
+    four_month_harvests = [
+        (sum(inflows[(i + k) % 12] for k in range(4)), i)
+        for i in range(12)
+    ]
+    wet_season_harvest, start_wet_month = max(four_month_harvests, key=lambda x: x[0]) if four_month_harvests else (total_inflow, 0)
+    dry_season_harvest = max(0.0, total_inflow - wet_season_harvest)
+    pct_monsoon = round((wet_season_harvest / max(1.0, total_inflow)) * 100.0)
+    end_wet_month = (start_wet_month + 3) % 12
+    season_window = f"{MONTH_NAMES[start_wet_month]} to {MONTH_NAMES[end_wet_month]} accounts for {pct_monsoon}% ({int(wet_season_harvest):,} L) of annual harvest."
+
     return WaterBalanceResult(
         tank_capacity_litres=tank_capacity_litres,
         total_rainfall_mm=round(sum(monthly_rainfall_mm), 1),
@@ -140,4 +161,9 @@ def simulate_water_balance(
         overflow_percentage=round(overflow_pct, 2),
         average_storage_utilization_pct=round(utilization_sum / 12.0, 1),
         monthly_breakdown=monthly_steps,
+        wet_season_harvest_litres=round(wet_season_harvest, 1),
+        dry_season_harvest_litres=round(dry_season_harvest, 1),
+        peak_harvest_month=MONTH_NAMES[peak_idx],
+        lowest_harvest_month=MONTH_NAMES[lowest_idx],
+        seasonal_harvest_window=season_window,
     )

@@ -14,6 +14,8 @@ from backend.app.recommendations.explainer import ExplainabilityResponse
 class AnalysisRequest(BaseModel):
     # Location & Climate
     city: str = Field(default="Bengaluru", description="City or region name")
+    latitude: Optional[float] = Field(default=None, ge=-90.0, le=90.0, description="Catchment latitude coordinate")
+    longitude: Optional[float] = Field(default=None, ge=-180.0, le=180.0, description="Catchment longitude coordinate")
     annual_rainfall_mm: Optional[float] = Field(default=None, ge=0.0, description="Optional manual annual rainfall override (mm)")
     monthly_rainfall_mm: Optional[List[float]] = Field(default=None, description="Optional 12 monthly rainfall overrides (mm)")
 
@@ -98,6 +100,9 @@ class TankOptimizeResponse(BaseModel):
     all_candidates: List[CandidateEvaluation]
     recommended_capacity_litres: float
     selection_rationale: str
+    minimum_practical_capacity_litres: Optional[float] = None
+    upper_practical_capacity_litres: Optional[float] = None
+    sizing_tiers: Optional[Dict[str, Any]] = None
 
 
 class MLForecastRequest(BaseModel):
@@ -122,6 +127,22 @@ class LocationsResponse(BaseModel):
     count: int
 
 
+class GeocodeResultItem(BaseModel):
+    name: str
+    state: Optional[str] = ""
+    country: Optional[str] = ""
+    latitude: float
+    longitude: float
+    elevation: Optional[float] = 0.0
+    source: Optional[str] = "Geocoding Service"
+
+
+class GeocodeResponse(BaseModel):
+    query: str
+    results: List[GeocodeResultItem]
+    count: int
+
+
 class AnalysisResponse(BaseModel):
     request_id: str
     timestamp: str
@@ -131,3 +152,4 @@ class AnalysisResponse(BaseModel):
     tank_optimization_candidates: List[CandidateEvaluation]
     explainability: ExplainabilityResponse
     ml_forecast: Optional[Dict[str, Any]] = None
+    sizing_tiers: Optional[Dict[str, Any]] = None

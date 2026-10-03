@@ -23,6 +23,9 @@ class OptimizationSummary(BaseModel):
     optimal_evaluation: CandidateEvaluation
     all_candidates: List[CandidateEvaluation]
     recommendation_note: str
+    minimum_practical_capacity_litres: Optional[float] = None
+    upper_practical_capacity_litres: Optional[float] = None
+    sizing_tiers: Optional[Dict[str, Any]] = None
 
 
 # Commercial pricing estimate in India (polyethylene / modular roto-molded tanks with plumbing)
@@ -125,6 +128,47 @@ def find_optimal_storage(
 
     best_candidate = max(valid_candidates, key=lambda c: c.optimization_score)
 
+    # 1. Minimum Practical Capacity:
+    # Sized for minimum emergency reserve (at least 3-5 days demand or smallest candidate >= 1000L)
+    min_candidates = [c for c in evaluations if c.capacity_litres >= min(1000.0, daily_demand_litres * 3.0)]
+    min_candidate = min_candidates[0] if min_candidates else evaluations[0]
+
+    # 2. Upper Practical Capacity:
+    # Point of diminishing marginal returns: where increasing capacity yields < 2% additional demand met
+    upper_candidates = [c for c in evaluations if c.capacity_litres >= best_candidate.capacity_litres]
+    upper_candidate = best_candidate
+    for i in range(len(upper_candidates) - 1):
+        c1, c2 = upper_candidates[i], upper_candidates[i + 1]
+        gain_pct = c2.demand_met_percentage - c1.demand_met_percentage
+        if gain_pct < 2.0:
+            upper_candidate = c1
+            break
+        upper_candidate = c2
+
+    sizing_tiers = {
+        "minimum": {
+            "capacity_litres": min_candidate.capacity_litres,
+            "demand_met_pct": min_candidate.demand_met_percentage,
+            "estimated_cost_inr": min_candidate.tank_cost_inr,
+            "payback_years": min_candidate.payback_years,
+            "rationale": "Entry-level capacity providing 3–7 days of domestic buffer during rain spells with minimal upfront capital investment.",
+        },
+        "recommended": {
+            "capacity_litres": best_candidate.capacity_litres,
+            "demand_met_pct": best_candidate.demand_met_percentage,
+            "estimated_cost_inr": best_candidate.tank_cost_inr,
+            "payback_years": best_candidate.payback_years,
+            "rationale": f"Optimal engineering balance maximizing annual water supply ({best_candidate.demand_met_percentage}% met) while maintaining attractive payback ({best_candidate.payback_years} years).",
+        },
+        "upper_practical": {
+            "capacity_litres": upper_candidate.capacity_litres,
+            "demand_met_pct": upper_candidate.demand_met_percentage,
+            "estimated_cost_inr": upper_candidate.tank_cost_inr,
+            "payback_years": upper_candidate.payback_years,
+            "rationale": "High-security storage capturing maximum monsoon surge to bridge into the dry season; beyond this volume, marginal water capture sharply diminishes.",
+        },
+    }
+
     note = (
         f"Capacity of {int(best_candidate.capacity_litres):,} L yields the highest composite efficiency "
         f"meeting {best_candidate.demand_met_percentage}% of annual demand with an estimated "
@@ -136,4 +180,7 @@ def find_optimal_storage(
         optimal_evaluation=best_candidate,
         all_candidates=evaluations,
         recommendation_note=note,
+        minimum_practical_capacity_litres=min_candidate.capacity_litres,
+        upper_practical_capacity_litres=upper_candidate.capacity_litres,
+        sizing_tiers=sizing_tiers,
     )

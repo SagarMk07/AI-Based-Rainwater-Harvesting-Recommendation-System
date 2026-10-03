@@ -125,8 +125,8 @@ def test_weather_endpoint():
     res_city = client.get("/api/weather?city=Mumbai")
     assert res_city.status_code == 200
     data_city = res_city.json()
-    assert data_city["city"] == "Mumbai"
-    assert data_city["annual_rainfall_mm"] == 2213.0
+    assert "Mumbai" in data_city["city"]
+    assert 2000.0 <= data_city["annual_rainfall_mm"] <= 2500.0
 
 
 def test_rainfall_predict_endpoint():

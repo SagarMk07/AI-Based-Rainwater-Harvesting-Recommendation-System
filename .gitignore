@@ -48,6 +48,13 @@ coverage.xml
 *.pem
 *.key
 
+# SQLite & Local Databases
+*.db
+*.sqlite
+*.sqlite3
+backend/data/
+
+
 # IDEs
 .idea/
 .vscode/
@@ -67,10 +74,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ML artifacts & datasets (except keep structure)
-ml/models/*.joblib
+# ML artifacts & datasets (keep essential models & processed datasets for out-of-the-box execution)
 ml/models/*.pkl
 data/raw/*
 !data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
+
