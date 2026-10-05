@@ -92,14 +92,15 @@ rainwater-ai/
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 18+ & npm
+- Node.js 18+ and npm
 
 ### Running the Backend
-1. Activate virtual environment:
+1. From the repository root, create and install the Python environment:
    ```powershell
-   .\.venv\Scripts\Activate.ps1
+   py -3.11 -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
    ```
-2. Start the FastAPI development server:
+2. Start the FastAPI development server from the repository root:
    ```powershell
    .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
    ```
@@ -109,15 +110,18 @@ rainwater-ai/
 1. Open a new terminal in `frontend/`:
    ```powershell
    cd frontend
+   npm ci
    npm run dev
    ```
    Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+Keep both development servers running while using the app. Vite proxies `/api` requests to `http://localhost:8000`; if the dashboard reports a network error, confirm the backend is running and reachable at that address. To use a different API base URL, set `VITE_API_URL` before starting Vite.
 
 ---
 
 ## 4. Automated Test Suite
 
-Run all 47 unit and integration tests via pytest:
+Run the backend unit and integration tests via pytest from the repository root:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -v
 ```
