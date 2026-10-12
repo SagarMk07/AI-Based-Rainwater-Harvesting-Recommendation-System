@@ -1,6 +1,6 @@
 -- =====================================================================
 -- AI-Based Rainwater Harvesting Intelligence & Optimization System
--- PostgreSQL & Supabase Database Schema with Row-Level Security (RLS)
+-- Consolidated Production PostgreSQL & Supabase Database Schema
 -- =====================================================================
 
 -- 1. Users / Profiles Table (extends Supabase auth.users)
@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS for profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own profile"
@@ -41,7 +40,6 @@ CREATE TABLE IF NOT EXISTS public.properties (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS for properties
 ALTER TABLE public.properties ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can CRUD own properties"
@@ -66,10 +64,11 @@ CREATE TABLE IF NOT EXISTS public.analyses (
     water_balance_breakdown JSONB NOT NULL,
     explainability_rationale JSONB NOT NULL,
     is_offline_guest BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    model_version TEXT DEFAULT '2.0.0',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS for analyses (Prevents Cross-Tenant Data Access)
 ALTER TABLE public.analyses ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can only select own analyses"
@@ -108,7 +107,47 @@ CREATE POLICY "Users can read recommendations of own analyses"
         AND analyses.user_id = auth.uid()
     ));
 
--- 5. Weather Data Cache Table
+-- 5. Analysis Assumptions Table
+CREATE TABLE IF NOT EXISTS public.analysis_assumptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    analysis_id UUID NOT NULL REFERENCES public.analyses(id) ON DELETE CASCADE,
+    runoff_coefficients JSONB NOT NULL,
+    filter_efficiency NUMERIC(4, 2) NOT NULL DEFAULT 0.90,
+    first_flush_depth_mm NUMERIC(4, 2) NOT NULL DEFAULT 1.0,
+    daily_per_capita_demand_litres NUMERIC(6, 2) NOT NULL DEFAULT 135.0,
+    safety_margin_pct NUMERIC(4, 2) NOT NULL DEFAULT 15.0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.analysis_assumptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view assumptions of own analyses"
+    ON public.analysis_assumptions FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.analyses
+        WHERE analyses.id = analysis_assumptions.analysis_id
+        AND analyses.user_id = auth.uid()
+    ));
+
+-- 6. Model Versions Table
+CREATE TABLE IF NOT EXISTS public.model_versions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    model_name TEXT NOT NULL,
+    model_version TEXT NOT NULL UNIQUE,
+    trained_at TIMESTAMPTZ DEFAULT NOW(),
+    dataset_version TEXT NOT NULL,
+    metrics JSONB NOT NULL,
+    feature_schema JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.model_versions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access to model versions"
+    ON public.model_versions FOR SELECT
+    USING (true);
+
+-- 7. Weather Data Cache Table
 CREATE TABLE IF NOT EXISTS public.weather_data (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     city TEXT NOT NULL UNIQUE,
@@ -121,35 +160,17 @@ CREATE TABLE IF NOT EXISTS public.weather_data (
     last_synced_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Weather data is public read-only
 ALTER TABLE public.weather_data ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public read access to weather data"
     ON public.weather_data FOR SELECT
     USING (true);
 
--- 6. Model Metrics Table
-CREATE TABLE IF NOT EXISTS public.model_metrics (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    model_version TEXT NOT NULL,
-    dataset_version TEXT NOT NULL,
-    training_period TEXT NOT NULL,
-    testing_period TEXT NOT NULL,
-    regression_metrics JSONB NOT NULL,
-    classification_metrics JSONB NOT NULL,
-    feature_importances JSONB NOT NULL,
-    recorded_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE public.model_metrics ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow public read access to model metrics"
-    ON public.model_metrics FOR SELECT
-    USING (true);
-
--- Indexes for High Performance Queries
+-- High-Performance Query Indexes
 CREATE INDEX IF NOT EXISTS idx_properties_user_id ON public.properties(user_id);
 CREATE INDEX IF NOT EXISTS idx_analyses_user_id ON public.analyses(user_id);
 CREATE INDEX IF NOT EXISTS idx_analyses_created_at ON public.analyses(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recommendations_analysis_id ON public.recommendations(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_analysis_assumptions_analysis_id ON public.analysis_assumptions(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_model_versions_version ON public.model_versions(model_version);
 CREATE INDEX IF NOT EXISTS idx_weather_data_city ON public.weather_data(city);

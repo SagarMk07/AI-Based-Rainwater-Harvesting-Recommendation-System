@@ -130,6 +130,8 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
   const [weatherInfo, setWeatherInfo] = useState<CityRainfallProfile | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
+  const [rainfallSource, setRainfallSource] = useState<'preset' | 'manual' | 'telemetry'>('telemetry')
+  const [activePreset, setActivePreset] = useState<'A' | 'B' | 'C' | 'D' | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [geolocationLoading, setGeolocationLoading] = useState(false)
   const [geolocationError, setGeolocationError] = useState<string | null>(null)
@@ -143,10 +145,16 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
       .then((info) => {
         if (isMounted) {
           setWeatherInfo(info)
-          setFormData((prev) => ({
-            ...prev,
-            annual_rainfall_mm: info.annual_rainfall_mm,
-          }))
+          // Only overwrite annual rainfall if not explicitly locked by a preset or manual override
+          setFormData((prev) => {
+            if (rainfallSource === 'telemetry') {
+              return {
+                ...prev,
+                annual_rainfall_mm: info.annual_rainfall_mm,
+              }
+            }
+            return prev
+          })
           setWeatherLoading(false)
         }
       })
@@ -157,7 +165,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
     return () => {
       isMounted = false
     }
-  }, [formData.city, formData.latitude, formData.longitude])
+  }, [formData.city, formData.latitude, formData.longitude, rainfallSource])
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
@@ -176,6 +184,8 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
           const resolvedCity = rev?.city || `GPS (${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`
           const weather = await analysisService.getCityWeather(resolvedCity, lat, lon)
           setWeatherInfo(weather)
+          setActivePreset(null)
+          setRainfallSource('telemetry')
           setFormData((prev) => ({
             ...prev,
             city: resolvedCity,
@@ -211,11 +221,15 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
   const instantAnnualDemand = Math.round(formData.daily_demand_litres * 365)
   const potentialDemandCovered = Math.min(100, Math.round((instantGrossHarvest / (instantAnnualDemand || 1)) * 100))
 
-  // Handlers for benchmark presets
+  // Handlers for benchmark presets - updating documented fields and exact coordinates
   const applyPreset = (preset: 'A' | 'B' | 'C' | 'D') => {
+    setActivePreset(preset)
+    setRainfallSource('preset')
     if (preset === 'A') {
       setFormData({
         city: 'Bengaluru',
+        latitude: 12.9716,
+        longitude: 77.5946,
         annual_rainfall_mm: 900,
         roof_area_sqm: 200,
         roof_type: 'rcc',
@@ -230,6 +244,8 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
     } else if (preset === 'B') {
       setFormData({
         city: 'Mumbai',
+        latitude: 18.9220,
+        longitude: 72.8347,
         annual_rainfall_mm: 1800,
         roof_area_sqm: 500,
         roof_type: 'rcc',
@@ -244,6 +260,8 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
     } else if (preset === 'C') {
       setFormData({
         city: 'Kolkata',
+        latitude: 22.5726,
+        longitude: 88.3639,
         annual_rainfall_mm: 1600,
         roof_area_sqm: 200,
         roof_type: 'rcc',
@@ -258,6 +276,8 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
     } else if (preset === 'D') {
       setFormData({
         city: 'Jaipur',
+        latitude: 26.9124,
+        longitude: 75.7873,
         annual_rainfall_mm: 350,
         roof_area_sqm: 50,
         roof_type: 'rcc',
@@ -277,30 +297,35 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
     setValidationError(null)
     if (step === 1) {
       if (!formData.city.trim()) {
-        setValidationError('Please select or specify a city location.')
+        setValidationError('Location field: Please enter or choose a property location.')
         return false
       }
       if (formData.annual_rainfall_mm <= 0) {
-        setValidationError('Annual rainfall must be greater than 0 mm.')
+        setValidationError('Rainfall field: Annual rainfall must be greater than 0 mm.')
         return false
       }
     } else if (step === 2) {
       if (formData.roof_area_sqm <= 0) {
-        setValidationError('Catchment roof area must be greater than 0 m².')
+        setValidationError('Catchment Roof Area field: Catchment roof area must be greater than 0 m².')
         return false
       }
     } else if (step === 3) {
       if (formData.occupants < 1) {
-        setValidationError('Building occupants must be at least 1 person.')
+        setValidationError('Building Occupants field: Number of occupants must be at least 1 person.')
         return false
       }
       if (formData.daily_demand_litres <= 0) {
-        setValidationError('Daily water demand must be greater than 0 Litres.')
+        setValidationError('Daily Water Requirement field: Daily water demand must be greater than 0 Litres.')
         return false
       }
     } else if (step === 4) {
       if (formData.open_area_sqm < 0) {
-        setValidationError('Open unpaved area cannot be negative.')
+        setValidationError('Open Ground Area field: Available unpaved open space cannot be negative.')
+        return false
+      }
+    } else if (step === 5) {
+      if (formData.budget_inr !== undefined && formData.budget_inr !== null && formData.budget_inr < 0) {
+        setValidationError('Capital Budget field: Maximum capital budget cannot be negative.')
         return false
       }
     }
@@ -429,12 +454,14 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
             </div>
 
             {/* Popular Cities Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               {POPULAR_CITIES.map((c) => (
                 <button
                   key={c.name}
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    setActivePreset(null)
+                    setRainfallSource('telemetry')
                     setFormData({
                       ...formData,
                       city: c.name,
@@ -442,15 +469,15 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                       longitude: c.lon,
                       annual_rainfall_mm: c.rain,
                     })
-                  }
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between h-full min-w-0 ${
                     formData.city.toLowerCase() === c.name.toLowerCase()
                       ? 'border-forest-600 bg-forest-50/70 text-forest-950 font-bold ring-2 ring-forest-500/20 shadow-sm'
                       : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  <span className="block text-xs font-bold">{c.name}</span>
-                  <span className="block text-[11px] text-slate-400 font-mono mt-0.5">
+                  <span className="block text-xs font-bold truncate">{c.name}</span>
+                  <span className="block text-[11px] text-slate-400 font-mono mt-0.5 truncate">
                     {c.rain} mm/yr
                   </span>
                 </button>
@@ -458,59 +485,64 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
             </div>
 
             {/* Custom Location & Coordinates */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                   Location / City Name
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
                     value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    onChange={(e) => {
+                      setActivePreset(null)
+                      setFormData({ ...formData, city: e.target.value })
+                    }}
                     placeholder="Enter city or district name"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="h-10 w-full pl-9 pr-3 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                   Latitude (°N) & Longitude (°E)
                 </label>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
                   <input
                     type="number"
                     step="0.0001"
                     placeholder="Lat"
                     value={formData.latitude !== undefined && formData.latitude !== null ? formData.latitude : ''}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setActivePreset(null)
                       setFormData({
                         ...formData,
                         latitude: parseFloat(e.target.value) || 0,
                       })
-                    }
-                    className="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    }}
+                    className="h-10 w-full px-3 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                   />
                   <input
                     type="number"
                     step="0.0001"
                     placeholder="Lon"
                     value={formData.longitude !== undefined && formData.longitude !== null ? formData.longitude : ''}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setActivePreset(null)
                       setFormData({
                         ...formData,
                         longitude: parseFloat(e.target.value) || 0,
                       })
-                    }
-                    className="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    }}
+                    className="h-10 w-full px-3 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                   />
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-1.5 min-h-[1.25rem]">
                   <label className="block text-xs font-bold text-slate-700">
                     Annual Rainfall (mm)
                   </label>
@@ -524,15 +556,17 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                   <input
                     type="number"
                     value={formData.annual_rainfall_mm}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setActivePreset(null)
+                      setRainfallSource('manual')
                       setFormData({
                         ...formData,
                         annual_rainfall_mm: parseFloat(e.target.value) || 0,
                       })
-                    }
+                    }}
                     min="1"
                     step="1"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="h-10 w-full px-3 pr-10 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                   />
                   <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
                     mm
@@ -546,9 +580,17 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center space-x-2">
-                    {weatherInfo.is_fallback ? (
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
-                        IMD OFFLINE FALLBACK
+                    {rainfallSource === 'preset' ? (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-900 border border-indigo-300">
+                        BENCHMARK PRESET {activePreset ? `(${activePreset})` : ''}
+                      </span>
+                    ) : rainfallSource === 'manual' ? (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-900 border border-purple-300">
+                        USER MANUAL SPECIFICATION
+                      </span>
+                    ) : weatherInfo.is_fallback ? (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                        IMD 30-YEAR NORMAL FALLBACK
                       </span>
                     ) : (
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1">
@@ -561,13 +603,20 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     </span>
                   </div>
                   <span className="font-mono font-bold text-water-700 bg-water-50 px-2.5 py-1 rounded-lg border border-water-200 text-xs self-start sm:self-auto">
-                    {weatherInfo.annual_rainfall_mm} mm/year
+                    {formData.annual_rainfall_mm} mm/year applied
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 font-mono">
-                  <span>Provider: {weatherInfo.weather_source.split(' ')[0]}</span>
-                  <span>Period: {weatherInfo.data_period || '30-Year Normal'}</span>
+                  <span>
+                    Source:{' '}
+                    {rainfallSource === 'preset'
+                      ? `Benchmark Scenario ${activePreset} parameters`
+                      : rainfallSource === 'manual'
+                      ? 'Manual user input'
+                      : weatherInfo.weather_source.split(' ')[0]}
+                  </span>
+                  <span>Climatological Period: {weatherInfo.data_period || '30-Year Normal'}</span>
                   {weatherInfo.wettest_month && (
                     <span>Peak Month: <strong>{weatherInfo.wettest_month}</strong></span>
                   )}
@@ -585,7 +634,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                   Catchment Roof Area (m²)
                   <InfoTooltip content="Total flat projected footprint of the rooftop generating stormwater runoff." />
                 </label>
@@ -601,7 +650,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }
                     min="1"
                     step="5"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="h-10 w-full px-3 pr-10 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                   />
                   <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
                     m²
@@ -613,7 +662,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                   Filter Conveyance Efficiency
                   <InfoTooltip content="Standard 90% conveyance accounts for gutter overflow and first flush loss." />
                 </label>
@@ -625,7 +674,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                       filter_efficiency: parseFloat(e.target.value),
                     })
                   }
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-forest-500"
+                  className="h-10 w-full px-3 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                 >
                   <option value={0.95}>95% (High efficiency automated screen)</option>
                   <option value={0.90}>90% (Standard SS mesh filter + diverter)</option>
@@ -647,7 +696,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     <div
                       key={roof.id}
                       onClick={() => setFormData({ ...formData, roof_type: roof.id })}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                      className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between h-full min-w-0 ${
                         isSelected
                           ? 'border-forest-600 bg-forest-50/70 shadow-sm ring-2 ring-forest-500/20'
                           : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -659,7 +708,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                           C = {roof.coeff}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed">{roof.desc}</p>
+                      <p className="text-[11px] text-slate-500 leading-relaxed mt-1">{roof.desc}</p>
                     </div>
                   )
                 })}
@@ -673,12 +722,12 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                   Building Occupants / Residents
                   <InfoTooltip content="Number of full-time residents utilizing water on site." />
                 </label>
                 <div className="relative">
-                  <Users className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Users className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <input
                     type="number"
                     value={formData.occupants}
@@ -692,7 +741,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }}
                     min="1"
                     max="1000"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="h-10 w-full pl-9 pr-3 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                   />
                 </div>
                 <span className="text-[11px] text-slate-400 mt-1 block">
@@ -701,7 +750,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                   Total Daily Water Requirement (L/day)
                   <InfoTooltip content="Total consumption. You can override the calculated BIS average." />
                 </label>
@@ -717,7 +766,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }
                     min="1"
                     step="25"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="h-10 w-full px-3 pr-14 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                   />
                   <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
                     L/day
@@ -761,7 +810,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     <div
                       key={soil.id}
                       onClick={() => setFormData({ ...formData, soil_type: soil.id })}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                      className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between h-full min-w-0 ${
                         isSelected
                           ? 'border-forest-600 bg-forest-50/70 shadow-sm ring-2 ring-forest-500/20'
                           : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -773,7 +822,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                           {soil.rate}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed">{soil.desc}</p>
+                      <p className="text-[11px] text-slate-500 leading-relaxed mt-1">{soil.desc}</p>
                     </div>
                   )
                 })}
@@ -782,7 +831,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                   Available Unpaved Open Ground (m²)
                   <InfoTooltip content="Space for excavating recharge pits, trenches, or filter chambers." />
                 </label>
@@ -798,7 +847,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }
                     min="0"
                     step="5"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="h-10 w-full px-3 pr-10 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                   />
                   <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
                     m²
@@ -807,11 +856,11 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                   Existing On-Site Borewell
                   <InfoTooltip content="Direct recharge into or adjacent to an existing borewell saves deep drilling costs." />
                 </label>
-                <div className="flex items-center space-x-4 pt-1.5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 h-auto sm:h-10 pt-1">
                   <label className="inline-flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
                     <input
                       type="radio"
@@ -842,11 +891,11 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
         {currentStep === 5 && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
                 Maximum Capital Budget (₹ INR)
                 <InfoTooltip content="Optimization engine penalizes candidate tanks exceeding your specified budget." />
               </label>
-              <div className="relative max-w-xs">
+              <div className="relative max-w-md">
                 <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-mono font-bold">
                   ₹
                 </span>
@@ -861,7 +910,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                   }
                   placeholder="e.g. 100000"
                   step="5000"
-                  className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500"
+                  className="h-10 w-full pl-8 pr-3 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
                 />
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
@@ -877,21 +926,21 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               </h3>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-                <div className="p-2.5 bg-white rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-slate-400 block">Location</span>
-                  <span className="font-bold text-slate-800">{formData.city}</span>
+                <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
+                  <span className="text-[10px] text-slate-400 block truncate">Location</span>
+                  <span className="font-bold text-slate-800 truncate mt-1">{formData.city}</span>
                 </div>
-                <div className="p-2.5 bg-white rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-slate-400 block">Roof Area</span>
-                  <span className="font-bold text-slate-800">{formData.roof_area_sqm} m²</span>
+                <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
+                  <span className="text-[10px] text-slate-400 block truncate">Roof Area</span>
+                  <span className="font-bold text-slate-800 truncate mt-1">{formData.roof_area_sqm} m²</span>
                 </div>
-                <div className="p-2.5 bg-white rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-slate-400 block">Rainfall</span>
-                  <span className="font-bold text-slate-800">{formData.annual_rainfall_mm} mm</span>
+                <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
+                  <span className="text-[10px] text-slate-400 block truncate">Rainfall</span>
+                  <span className="font-bold text-slate-800 truncate mt-1">{formData.annual_rainfall_mm} mm</span>
                 </div>
-                <div className="p-2.5 bg-white rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-slate-400 block">Soil Type</span>
-                  <span className="font-bold text-slate-800 capitalize">{formData.soil_type}</span>
+                <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
+                  <span className="text-[10px] text-slate-400 block truncate">Soil Type</span>
+                  <span className="font-bold text-slate-800 capitalize truncate mt-1">{formData.soil_type}</span>
                 </div>
               </div>
 
@@ -911,7 +960,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               type="button"
               onClick={handleBack}
               disabled={loading}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors flex items-center space-x-1.5"
+              className="h-11 px-5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors inline-flex items-center space-x-1.5"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Previous Step</span>
@@ -925,7 +974,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               type="button"
               onClick={handleNext}
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-sm transition-all flex items-center space-x-1.5"
+              className="h-11 px-6 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-sm transition-all inline-flex items-center space-x-1.5"
             >
               <span>Continue to Step {currentStep + 1}</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -934,7 +983,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 rounded-xl bg-forest-700 hover:bg-forest-800 text-white font-extrabold text-xs shadow-md transition-all flex items-center space-x-2 disabled:opacity-60"
+              className="h-11 px-6 rounded-xl bg-forest-700 hover:bg-forest-800 text-white font-extrabold text-xs shadow-md transition-all inline-flex items-center space-x-2 disabled:opacity-60"
             >
               <Calculator className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               <span>{loading ? 'Simulating 12-Month Water Balance...' : 'Execute Hydrological Simulation'}</span>

@@ -36,7 +36,12 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_JWT_SECRET: str = ""
     DATABASE_URL: str = ""
+
+    # Security & Rate Limiting
+    RATE_LIMIT_PER_MINUTE: int = 60
+    MAX_REQUEST_BODY_BYTES: int = 1_000_000  # 1 MB max payload
 
     # Path Settings
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

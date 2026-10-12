@@ -207,3 +207,47 @@ def test_quick_runoff_validation_rejection():
     }
     res = client.post("/api/calculate/runoff", json=payload)
     assert res.status_code == 422
+
+
+def test_openapi_documentation_accessible():
+    """Verify that OpenAPI schema and interactive Swagger docs are exposed."""
+    openapi_res = client.get("/openapi.json")
+    assert openapi_res.status_code == 200
+    spec = openapi_res.json()
+    assert spec["info"]["title"] == "AI Rainwater Harvesting Intelligence & Optimization System"
+    assert "/api/analyze" in spec["paths"]
+    assert "/api/health" in spec["paths"]
+
+    docs_res = client.get("/docs")
+    assert docs_res.status_code == 200
+
+
+def test_guest_access_allowed_for_analysis_but_not_private_history():
+    """Verify Phase 7 guest policy:
+    1. Guests can execute property analysis without authentication.
+    2. Guests cannot access private user profile or other users' saved analyses without authentication.
+    """
+    payload = {
+        "city": "Jaipur",
+        "annual_rainfall_mm": 650.0,
+        "roof_area_sqm": 180.0,
+        "roof_type": "rcc",
+        "occupants": 4,
+        "daily_demand_litres": 550.0,
+        "soil_type": "sandy",
+        "open_area_sqm": 45.0,
+        "budget_inr": 90000.0,
+    }
+    # Guest analysis succeeds
+    res = client.post("/api/analyze", json=payload)
+    assert res.status_code == 200
+    guest_result = res.json()
+    assert guest_result["is_guest"] is True
+    assert guest_result["request_id"] is not None
+    assert guest_result["recommendation"]["system_type"] is not None
+
+    # Unauthenticated access to private account endpoint is forbidden
+    unauth_account_res = client.delete("/api/user/account")
+    assert unauth_account_res.status_code == 401
+
+

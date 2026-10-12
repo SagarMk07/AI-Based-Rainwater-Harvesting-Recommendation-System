@@ -4,54 +4,166 @@ An engineering-grade environmental intelligence system combining hydrological en
 
 ---
 
-## 1. Architectural Philosophy
+## 1. Architectural Philosophy & Architecture Map
 
-A core rule of this system:
+A foundational rule of this system:
 
 > **Do NOT use machine learning for calculations that can be accurately performed using engineering formulas.**
 
-The system is partitioned into decoupled layers:
-1. **Machine Learning Layer**:
-   - **System Recommendation Classifier**: Pure NumPy Random Forest Classifier (94.9% accuracy, 0.9389 macro F1) trained on 5,400 balanced property records across four system types (`Storage Tank`, `Recharge Pit`, `Recharge Well`, `Hybrid System`).
-   - **Time-Series Rainfall Predictor**: Autoregressive lag model forecasting 12-month precipitation curves from geographic coordinates and elevation.
-2. **Deterministic Engineering Engine**:
-   - Gross Harvest Potential: $V_{\text{gross}} = P \times A \times C$
-   - Collectable Water: $V_{\text{collectable}} = V_{\text{gross}} \times \eta_{\text{filter}}$
-   - Runoff Coefficients: RCC (0.85), Galvanized Sheet (0.90), Clay Tiles (0.80), Paver Blocks (0.70)
-   - Dynamic Demand Modeling: Occupancy demand ($120\text{--}150\text{ L/person/day}$) calibrated to monthly calendar days.
-3. **Simulation & Optimization Layer**:
-   - 12-month iterative hydrological water balance simulation tracking inflows, storage states, supplied water, overflows, and deficits.
-   - Multi-objective Pareto optimization across candidate storage capacities ($1{,}000\text{--}50{,}000\text{ L}$) with budget penalty constraints.
-   - **Three-Tier Practical Sizing**:
-     - *Minimum Practical*: Sized for 3–7 days buffer reserve during rain spells.
-     - *Recommended Optimum*: Maximum demand coverage balancing capital payback (< 10 yrs).
-     - *Upper Practical*: Marginal gain threshold ($\Delta \text{Coverage} < 2\% / 5{,}000\text{ L}$) where return sharply plateaus.
-4. **Real-World Location Intelligence & Meteorology**:
-   - **Live Telemetry & Reanalysis**: Open-Meteo ERA5 historical reanalysis (2021–2023) and high-resolution ECMWF 7-day precipitation forecasts (Zero API keys required).
-   - **Offline Resilience**: Verified India Meteorological Department (IMD) 30-year climatological normals with nearest-station Haversine matching.
-   - **Two-Tier Caching**: High-performance in-memory cache and persistent SQLite disk cache (`data/weather_cache.db`).
-   - **Geocoding & Map Pinning**: Open-Meteo Geocoding API with local gazetteer fallback, draggable Leaflet map marker, and browser GPS geolocation.
-   - **Seasonal Harvest Intelligence**: "When Can You Harvest the Most?" breakdown analyzing monsoon vs dry season yield splits.
+```
+[ Frontend: React 19 + Vite + TypeScript ]
+   ├── Public Layout: PublicNavbar (Landing, Login, Signup, About)
+   └── Application Layout: AppNavbar + ProtectedRoute (Dashboard, Analyze, History)
+                   │
+                   ▼ (HTTPS / JSON REST with JWT Auth & Security Headers)
+[ FastAPI Production API Gateway ]
+   ├── ProductionSecurityMiddleware (Rate Limiting, Payload Limits, Request ID)
+   ├── Uniform Error Handling (Structured JSON, Zero Traceback Leaks)
+   └── Authentication / Authorization Layer (decode_supabase_jwt, AuthUser)
+                   │
+   ┌───────────────┼───────────────────────────┬───────────────────────┐
+   ▼               ▼                           ▼                       ▼
+[ Services ]  [ Engineering Engine ]    [ ML Inference ]        [ Database ]
+  • Weather     • Runoff (V = P*A*C)      • RF Classifier         • Supabase (PostgreSQL)
+  • Geocoding   • Demand Modeling         • Time-series Regressor • Row-Level Security
+  • Caching     • Water Balance           • Preprocessor Pipeline • SQLite Local Cache
+                • Tank Sizing Optimizer   • Versioning (v2.0.0)   • Migrations (001, 002)
+   │
+   ▼ (External APIs with Offline Resilience)
+[ External APIs: Open-Meteo ERA5 / IMD 30-Yr Normals Fallback ]
+```
 
 ---
 
-## 2. Directory Structure
+## 2. Public Landing Page & Route Architecture (Phase 7)
+
+The application features a public-facing website and authenticated application shell with multi-route navigation:
+
+### Route Map
+| Route | View Component | Layout | Access Level | Description |
+|---|---|---|---|---|
+| `/` | `LandingPage` | `PublicLayout` | **Public** | **Default Public Homepage**. Features the dark hero, physical hydraulic flow visualization, assessment workflow, and 6 capability cards. Does **not** redirect automatically to dashboard. |
+| `/login` | `LoginPage` | `PublicLayout` | **Public** | Dedicated sign-in page with email/password form, password visibility toggle, reset flow, and "Continue as Guest" option. Preserves intended destination. |
+| `/signup` | `SignupPage` | `PublicLayout` | **Public** | User registration with full name, email, password validation, and "Continue as Guest" option. Preserves intended destination. |
+| `/dashboard` | `DashboardPage` | `AppLayout` | **Protected** | Authenticated user dashboard with recent analyses, aggregate statistics, quick actions, and connectivity telemetry. |
+| `/analyze` | `AnalyzePage` | `AppLayout` | **Public / Guest / User** | 5-step property input wizard and 12-month water balance results dashboard. Accessible to both logged-in users and anonymous guests. |
+| `/history` | `HistoryPage` | `AppLayout` | **Protected** | User's private historical analyses, search/filter, rerun, CSV export, and deletion. |
+| `/about` | `AboutPage` | `PublicLayout` | **Public** | Hydrological engineering principles, IS 15797:2008 standards, formulas, and ML model methodology. |
+
+### Layout Separation
+1. **Public Marketing Layout (`PublicLayout`)**:
+   - Uses `PublicNavbar`:
+     - **Logo**: RainHarvest AI (links to `/`)
+     - **Links**: How It Works (`/#how-it-works`), Features (`/#features`), About (`/about`)
+     - **Actions (Logged Out)**: "Sign In" (`/login`), "Get Started" (`/signup`)
+     - **Actions (Logged In)**: "Dashboard" button (`/dashboard`), "Analyze Property" button (`/analyze`)
+     - **Excluded from Public Navigation**: Does not display internal telemetry triggers, history counters, or engine status indicators.
+   - Includes standard public `Footer` and `PrivacyPolicyModal`.
+2. **Application Shell (`AppLayout`)**:
+   - Uses `AppNavbar`:
+     - Full application navigation: Dashboard, Analyze Property, History (with live counter), About, audited **ML Telemetry** modal trigger, and real-time **Engine Active / Offline** status indicator.
+     - Profile dropdown with user name/email, Privacy Notice, Account Deletion (GDPR), and Sign Out.
+   - Includes `MLTelemetryModal`, `PrivacyPolicyModal`, `AuthModal` (for automatic 401 token expiration handling), and the interactive `RainHarvestChatWidget`.
+3. **Route Protection (`ProtectedRoute`)**:
+   - Guards `/dashboard` and `/history`.
+   - Unauthenticated visitors are redirected to `/login`, preserving `state: { from: location }` so they return to their requested page immediately after authentication.
+
+### Guest Access & CTA Flow
+- **"Analyze My Property"**:
+  - **Logged In**: Navigates directly to `/analyze`.
+  - **Logged Out**: Opens `GuestChoiceModal` with three options:
+    1. *Continue as Guest*: Navigates directly to `/analyze` with zero friction.
+    2. *Sign In*: Navigates to `/login` with destination set to `/analyze`.
+    3. *Create Free Account*: Navigates to `/signup` with destination set to `/analyze`.
+- **"See How It Works"**: Smoothly scrolls to the existing `#how-it-works` assessment workflow section.
+- **"Get Started"**: If logged in, navigates to `/analyze`; otherwise navigates to `/signup`.
+- **"Sign In"**: Navigates to `/login`.
+- **Guest Execution**: Guests can run complete 5-step property wizard assessments, test benchmark presets, and review 12-month water balance curves without creating an account. Guests cannot access private profiles or saved history. A banner on `/analyze` allows guests to register or sign in to claim and persist their calculations.
+
+---
+
+## 3. Production Hardening Features (Phase 6)
+
+### A. Authentication & Row-Level Security (RLS)
+- **Supabase Authentication**: Full user lifecycle support (Sign Up, Sign In, Sign Out, Forgot Password, Session Persistence).
+- **Guest Mode Resilience**: Anonymous visitors can enter parameters, inspect weather, and run full calculations without being forced to create an account.
+- **One-Click Claiming**: Guests can sign in or register to immediately claim their ephemeral calculation to their authenticated account.
+- **Strict Row-Level Security (RLS)**: Enforced both at the database engine level and via API dependency checks. Users can only query, update, or delete records where `user_id == auth.uid()`.
+- **Cross-Tenant Protection**: Attempts by User A to access, modify, or delete User B's private analyses return `403 Forbidden` or `404 Not Found`.
+- **GDPR / Privacy Compliance**: Users can permanently delete their account and associated analyses via `DELETE /api/user/account`.
+
+### B. Database Schema & Tables
+PostgreSQL / Supabase schema structured into relational tables:
+1. `profiles`: Extends `auth.users` with cascading deletion.
+2. `properties`: Catchment specifications, roof materials, occupant counts, soil infiltration.
+3. `analyses`: Hydrological runs, water balance breakdown, cost-benefit metrics, model version tags (`2.0.0`).
+4. `recommendations`: System configuration, optimal tank capacity, recharge pit dimensions.
+5. `analysis_assumptions`: Calculation constants, runoff coefficients, filter efficiencies, per-capita demand.
+6. `model_versions`: Reproducible ML artifact versions, training periods, dataset tags, macro F1 metrics.
+7. `weather_data`: Cached meteorological normals and coordinates.
+
+Migrations are organized under `supabase/migrations/`:
+- `001_initial_schema.sql`: Core schema, constraints, and baseline RLS policies.
+- `002_production_hardening.sql`: `model_versions`, `analysis_assumptions`, and updated RLS policies.
+
+### C. API Security & Rate Limiting
+- **Uniform Error Structure**:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Rooftop catchment area must be greater than zero."
+    }
+  }
+  ```
+- **Zero Information Leakage**: Stack traces, file paths, and database credentials are never exposed in production responses.
+- **Sliding-Window Rate Limiting**:
+  - `POST /api/analyze`: 30 requests/min
+  - `POST /api/recommend/predict`: 30 requests/min
+  - `POST /api/rainfall/predict`: 30 requests/min
+  - `GET /api/weather`: 60 requests/min
+  - Global Default: 60 requests/min
+  - Excess requests return `429 Too Many Requests` with `Retry-After` header.
+- **Request Size Limits**: Requests exceeding `MAX_REQUEST_BODY_BYTES` (1 MB) are rejected with `413 Payload Too Large`.
+- **Security Headers**: Every response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and unique `X-Request-ID`.
+- **CORS Protection**: Development allows localhost; production restricts origins to designated production domains (wildcard `*` disallowed in production).
+
+### D. Health Check Endpoint
+`GET /api/health` returns status without exposing sensitive credentials:
+```json
+{
+  "status": "ok",
+  "api": "ok",
+  "database_status": "ok",
+  "ml_model": "ok",
+  "weather_service": "ok",
+  "timestamp": "2026-10-12T16:38:34.912345+00:00"
+}
+```
+
+---
+
+## 4. Directory Structure
 
 ```
 rainwater-ai/
 ├── backend/
 │   ├── app/
-│   │   ├── api/             # REST endpoints (full analysis, weather, geocoding, ML metrics)
+│   │   ├── api/             # REST endpoints (analysis, health, history, weather, geocoding)
+│   │   ├── auth/            # JWT validation, AuthUser schemas, test token provider
 │   │   ├── calculations/    # Deterministic engineering formulas (runoff, demand, water balance)
-│   │   ├── database/        # SQLite cache & Supabase persistence with RLS
-│   │   ├── ml/              # Pure NumPy inference models (AppLocker-safe)
+│   │   ├── database/        # Supabase connection manager & schema.sql
+│   │   ├── ml/              # Pure NumPy inference models & system predictor
 │   │   ├── optimization/    # Multi-tier storage tank capacity optimization
 │   │   ├── recommendations/ # Multi-criteria decision engine & explainability
-│   │   ├── schemas/         # Pydantic v2 schemas for requests & responses
+│   │   ├── schemas/         # Pydantic v2 schemas with strict numeric validation
 │   │   ├── services/        # WeatherService abstraction, Open-Meteo, IMD normals, geocoding
-│   │   ├── utils/           # Logging & utility helpers
+│   │   ├── utils/           # Structured request logger
 │   │   ├── config.py        # Pydantic Settings & environment variables
+│   │   ├── middleware.py    # ProductionSecurityMiddleware & uniform exception handlers
 │   │   └── main.py          # FastAPI application entry point & CORS
+│   ├── Dockerfile           # Multi-stage production backend container
 │   └── requirements.txt     # Python backend dependencies
 ├── data/
 │   ├── raw/                 # Raw rainfall & weather datasets
@@ -65,88 +177,147 @@ rainwater-ai/
 │   └── models/              # Serialized model artifacts (.joblib, .json)
 ├── frontend/
 │   ├── src/
-│   │   ├── components/      # React components (ResultsDashboard, RainfallIntelligence, PropertyMap)
-│   │   ├── layouts/         # RootLayout with persistent system state
-│   │   ├── pages/           # HomePage, NotFoundPage
-│   │   ├── services/        # Axios API client, typed analysis & geocoding services
+│   │   ├── components/      # React components (PublicNavbar, AppNavbar, ProtectedRoute, GuestChoiceModal)
+│   │   ├── context/         # AuthContext (Supabase + offline) & AppContext (global state)
+│   │   ├── layouts/         # PublicLayout (marketing) & AppLayout (authenticated shell)
+│   │   ├── pages/           # LandingPage, LoginPage, SignupPage, DashboardPage, AnalyzePage, HistoryPage, AboutPage
+│   │   ├── services/        # Axios API client, Supabase client, healthService
 │   │   ├── types/           # TypeScript interfaces
-│   │   └── App.tsx          # React application root
+│   │   └── App.tsx          # React Router v7 root configuration
+│   ├── Dockerfile           # Multi-stage Nginx production container
 │   ├── package.json
 │   └── vite.config.ts       # Vite configuration with /api backend proxy
+├── supabase/
+│   └── migrations/
+│       ├── 001_initial_schema.sql
+│       └── 002_production_hardening.sql
 ├── tests/
-│   ├── test_api.py              # API endpoint integration tests
+│   ├── test_api.py              # API endpoint integration & guest verification tests
 │   ├── test_calculations.py     # Deterministic hydrological formula tests
+│   ├── test_config.py           # Configuration tests
+│   ├── test_e2e_workflow.py     # Complete 15-step user lifecycle test
+│   ├── test_health.py           # System health & telemetry tests
 │   ├── test_ml_recommendations.py # ML inference & edge case tests
+│   ├── test_recommendations.py  # Recommendation engine tests
+│   ├── test_security.py         # Multi-tenant security, ownership, & boundary tests
 │   ├── test_weather.py          # Weather fallback & network failure tests
-│   └── test_weather_service.py  # Phase 5 location intelligence 8 scenario suite
-├── docs/
-│   ├── architecture.md      # Detailed system architecture specifications
-│   ├── ml-model.md          # Machine learning methodology & evaluation report
-│   └── weather-data.md      # Real-world data & location intelligence guide
+│   └── test_weather_service.py  # Real-world location intelligence suite
+├── docker-compose.yml       # Production multi-service container orchestration
+├── .env.example             # Clean environment variable template
 └── README.md
 ```
 
 ---
 
-## 3. Quick Start Guide
+## 5. Setup & Installation
 
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+ and npm
+- Docker & Docker Compose (optional for containerized deployment)
 
-### Running the Backend
-1. From the repository root, create and install the Python environment:
-   ```powershell
-   py -3.11 -m venv .venv
-   .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-   ```
-2. Start the FastAPI development server from the repository root:
-   ```powershell
-   .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
-   ```
-   Interactive Swagger API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+### Environment Configuration
+Copy the configuration template:
+```bash
+cp .env.example .env
+```
+Key configuration variables in `.env`:
+| Variable | Description | Default |
+|---|---|---|
+| `APP_ENV` | Environment mode (`development`, `production`, `testing`) | `development` |
+| `DEBUG` | Enable debug logs (set `false` in production) | `true` |
+| `HOST` / `PORT` | API host address and port | `0.0.0.0:8000` |
+| `CORS_ORIGINS` | Comma-separated list of allowed origins | `http://localhost:5173,...` |
+| `SUPABASE_URL` | Supabase project URL (optional for offline mode) | `""` |
+| `SUPABASE_KEY` | Supabase anon public API key | `""` |
+| `SUPABASE_JWT_SECRET` | Supabase JWT Secret for cryptographic verification | `""` |
+| `RATE_LIMIT_PER_MINUTE` | Rate limit cap per IP per minute | `60` |
 
-### Running the Frontend
-1. Open a new terminal in `frontend/`:
-   ```powershell
-   cd frontend
-   npm ci
-   npm run dev
-   ```
-   Open [http://localhost:5173](http://localhost:5173) in your browser.
+### Running Locally
 
-Keep both development servers running while using the app. Vite proxies `/api` requests to `http://localhost:8000`; if the dashboard reports a network error, confirm the backend is running and reachable at that address. To use a different API base URL, set `VITE_API_URL` before starting Vite.
+#### 1. Backend Setup:
+```powershell
+# Create and activate Python virtual environment
+py -3.11 -m venv .venv
+.\.venv\Scripts\activate
+
+# Install dependencies
+pip install -r backend\requirements.txt
+
+# Start backend API server
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+Interactive API documentation will be available at:
+- Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- OpenAPI Specification: [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
+
+#### 2. Frontend Setup:
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 4. Automated Test Suite
+## 6. Running with Docker Compose
 
-Run the backend unit and integration tests via pytest from the repository root:
+To spin up the entire application in production mode:
+```bash
+docker-compose up --build -d
+```
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- Backend: [http://localhost:8000](http://localhost:8000)
+- Healthcheck: [http://localhost:8000/api/health](http://localhost:8000/api/health)
+
+---
+
+## 7. Testing & Verification
+
+Execute the comprehensive automated test suite across all 57 test scenarios:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -v
 ```
 
-### Verified Scenarios:
-- **Exact Benchmark Test Case**: $200\,\text{m}^2 \times 900\,\text{mm} \times 0.85 = 153{,}000\,\text{L/yr}$.
-- **Water Demand Benchmark**: $5 \times 120\,\text{L/day} = 600\,\text{L/day} \to 219{,}000\,\text{L/yr}$.
-- **Storage Constraints**: Usable water bounded by physical tank capacity and monthly rainfall timing.
-- **ML Probability Calibration**: Softmax probabilities sum to $1.0$; boundary edge cases tested (very small roof, large commercial roof, arid climate, high rainfall, zero open area, low budget).
-- **Phase 5 Location Intelligence Suite**:
-  1. High Rainfall Location (Kochi / Mumbai)
-  2. Semi-Arid Location (Jaipur)
-  3. Moderate Plateau Climate (Bengaluru)
-  4. Invalid / Out-of-bounds Coordinates
-  5. Simulated Network Failure & Timeout Fallback
-  6. Geocoding & Reverse Geocoding Resolution
-  7. Interactive Marker Drag & Recalculation
-  8. Cache Hit vs Cache Miss Performance (< 50ms)
+Execute frontend production build verification:
+```powershell
+cd frontend
+npm run build
+```
+
+### Test Suite Structure:
+- `tests/test_security.py`: Verifies JWT authentication, cross-user isolation (User A vs User B), boundary rejection on negative values, rate limiting, and GDPR deletion.
+- `tests/test_e2e_workflow.py`: Executes the complete 15-step end-to-end lifecycle from signup, property entry, rainfall retrieval, ML recommendation, saving, logout, 401 rejection, to re-login.
+- `tests/test_api.py`: Tests REST endpoints, calculations, OpenAPI documentation, and anonymous guest access permissions.
+- `tests/test_health.py`: Validates service status, database connectivity, and ML pipeline ready states.
+- `tests/test_calculations.py`: Verifies exact mathematical benchmarks ($200\,\text{m}^2 \times 900\,\text{mm} \times 0.85 = 153{,}000\,\text{L}$).
+- `tests/test_ml_recommendations.py`: Tests ML probability distribution and constraint validation.
+- `tests/test_weather_service.py`: Tests location intelligence, ERA5 reanalysis, and fallback IMD normals.
 
 ---
 
-## 5. Completed Implementation Milestones
+## 8. Production Quality Gate Verification
 
-- [x] **Phase 1: Project Foundation & Clean Architecture**
-- [x] **Phase 2: Core Engineering Calculations & Water Balance Engine**
-- [x] **Phase 3: Premium UI/UX Environmental Design Overhaul**
-- [x] **Phase 4: AI/ML Validation & Explainable Recommendation Engine**
-- [x] **Phase 5: Real-World Data & Location Intelligence**
+- [x] **Public Landing Page**: Root route `/` renders the public homepage with dark hero, hydraulic flow visualization, assessment workflow, and capability cards without redirecting visitors to the dashboard.
+- [x] **Route Separation**: Dedicated routes for `/`, `/login`, `/signup`, `/dashboard`, `/analyze`, `/history`, and `/about`.
+- [x] **Layout Isolation**: Clean division between marketing navigation (`PublicLayout`) and application workspace (`AppLayout`).
+- [x] **Route Protection**: Protected routes `/dashboard` and `/history` require authentication; preserve intended target destination upon login.
+- [x] **Guest Access**: Anonymous visitors can use property analysis (`/analyze`), run calculations, and evaluate hydrological recommendations without an account.
+- [x] **Authentication**: Sign up, Login, Logout, Session persistence, Session expiration, and claiming verified.
+- [x] **Authorization**: Logged-out users and cross-users are prevented from reading or deleting private analyses (401/403).
+- [x] **Row-Level Security (RLS)**: PostgreSQL migrations `001_initial_schema.sql` and `002_production_hardening.sql` enforce tenant isolation.
+- [x] **Database Schema**: All required tables (`profiles`, `properties`, `analyses`, `recommendations`, `weather_data`, `model_versions`, `analysis_assumptions`) verified.
+- [x] **Input Validation**: Rejects zero/negative roof area, negative rainfall, zero occupants, and extreme out-of-bound values with standard 422 errors.
+- [x] **ML Reliability**: Fallback statistical forecasting operates seamlessly if joblib artifacts are missing.
+- [x] **Weather Fallback**: IMD historical normals provide offline resilience when live APIs are unreachable.
+- [x] **CORS & Security Headers**: Strict origin controls, CSP, nosniff, DENY, and request correlation IDs active.
+- [x] **Zero Secrets Committed**: Codebase audited with zero hardcoded API keys, passwords, or tokens.
+- [x] **Health Check**: `GET /api/health` operational.
+- [x] **Tests Passing**: 57/57 tests passing in 2.55s.
+- [x] **Production Build**: `npm run build` succeeds cleanly with zero TypeScript errors (built in 1.36s).
+- [x] **Calculation Engine 502 Resolution**: Vite dev proxy configured explicitly to `http://127.0.0.1:8000` avoiding IPv6 `localhost` connection drops; client-side retry & actionable diagnostics implemented for 502/504 errors.
+- [x] **Hydrological Rainfall Scaling**: Manual or preset annual rainfall overrides proportionally rescale the 12-month simulation array, maintaining physical mass-balance continuity.
+- [x] **5-Step Wizard & Preset Integrity**: Presets A, B, C, D atomically populate documented fields; background telemetry hooks do not overwrite user-specified rainfall; stepper lines align accurately to step nodes.
+- [x] **Guest Analysis & Claiming**: Complete 5-step analysis available anonymously with full calculation outputs; guests can authenticate or create an account to claim and persist their analysis via `POST /api/analysis/{id}/claim`.
+

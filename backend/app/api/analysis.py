@@ -69,19 +69,50 @@ from backend.app.ml.rainfall_predictor import (
     load_models,
 )
 from backend.app.database.connection import get_supabase_client
+from backend.app.auth.security import AuthUser, get_current_user, get_optional_user
 from backend.app.utils.logger import logger
+from fastapi import Depends
 
 router = APIRouter(tags=["Analysis & Engineering"])
 
-# In-memory session store for analyses (with Supabase sync if credentials available)
-_IN_MEMORY_ANALYSES: Dict[str, AnalysisResponse] = {}
+
+class AnalysisRecord:
+    """In-memory analysis container tracking data, owner ID, and guest flag."""
+    def __init__(self, analysis: AnalysisResponse, user_id: Optional[str] = None, is_guest: bool = False):
+        self.analysis = analysis
+        self.user_id = user_id
+        self.is_guest = is_guest
+
+
+# In-memory session store for analyses indexed by request_id
+_IN_MEMORY_ANALYSES: Dict[str, AnalysisRecord] = {}
+
+
+def _resolve_rainfall(payload: AnalysisRequest, weather_profile: CityRainfallProfile) -> tuple[float, List[float]]:
+    """Resolve annual and 12-month rainfall, scaling monthly distribution proportionally if annual is overridden."""
+    annual_rain = payload.annual_rainfall_mm if payload.annual_rainfall_mm is not None else weather_profile.annual_rainfall_mm
+    if payload.monthly_rainfall_mm is not None:
+        monthly_rain = payload.monthly_rainfall_mm
+    elif payload.annual_rainfall_mm is not None and weather_profile.monthly_rainfall_mm:
+        profile_sum = sum(weather_profile.monthly_rainfall_mm)
+        if profile_sum > 0:
+            scale = annual_rain / profile_sum
+            monthly_rain = [round(m * scale, 1) for m in weather_profile.monthly_rainfall_mm]
+        else:
+            monthly_rain = [round(annual_rain / 12.0, 1)] * 12
+    else:
+        monthly_rain = weather_profile.monthly_rainfall_mm
+    return annual_rain, monthly_rain
 
 
 # =====================================================================
 # 1. CORE PIPELINE: FULL ANALYSIS
 # =====================================================================
 @router.post("/analyze", response_model=AnalysisResponse, status_code=status.HTTP_200_OK)
-async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
+async def run_full_analysis(
+    payload: AnalysisRequest,
+    current_user: Optional[AuthUser] = Depends(get_optional_user),
+) -> AnalysisResponse:
     """Execute end-to-end engineering intelligence, optimization, and recommendation."""
     try:
         # 1. Fetch weather profile (utilizing coordinates if available)
@@ -91,9 +122,7 @@ async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
             lon=payload.longitude,
         )
 
-        # Override with manual inputs if provided
-        annual_rain = payload.annual_rainfall_mm if payload.annual_rainfall_mm is not None else weather_profile.annual_rainfall_mm
-        monthly_rain = payload.monthly_rainfall_mm if payload.monthly_rainfall_mm is not None else weather_profile.monthly_rainfall_mm
+        annual_rain, monthly_rain = _resolve_rainfall(payload, weather_profile)
 
         if len(monthly_rain) != 12:
             raise HTTPException(
@@ -165,9 +194,15 @@ async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
         except Exception:
             pass
 
+        user_id = current_user.id if current_user else None
+        is_guest = current_user is None
+
         analysis_res = AnalysisResponse(
             request_id=f"rwh-{uuid.uuid4().hex[:8]}",
             timestamp=datetime.now(timezone.utc).isoformat(),
+            user_id=user_id,
+            is_guest=is_guest,
+            model_version="2.0.0",
             weather=weather_profile,
             recommendation=rec,
             water_balance=sim_result,
@@ -177,8 +212,12 @@ async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
             sizing_tiers=opt_summary.sizing_tiers,
         )
 
-        # Store in session memory
-        _IN_MEMORY_ANALYSES[analysis_res.request_id] = analysis_res
+        # Store in session memory container
+        _IN_MEMORY_ANALYSES[analysis_res.request_id] = AnalysisRecord(
+            analysis=analysis_res,
+            user_id=user_id,
+            is_guest=is_guest,
+        )
 
         # Optional Supabase persistence
         sb_client = get_supabase_client()
@@ -186,6 +225,7 @@ async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
             try:
                 sb_client.table("analyses").insert({
                     "id": str(uuid.uuid4()),
+                    "user_id": user_id,
                     "city": payload.city,
                     "annual_rainfall_mm": annual_rain,
                     "gross_harvest_litres": rec.annual_gross_harvest_litres,
@@ -198,7 +238,8 @@ async def run_full_analysis(payload: AnalysisRequest) -> AnalysisResponse:
                     "payback_years": rec.payback_years or 0.0,
                     "water_balance_breakdown": sim_result.model_dump(),
                     "explainability_rationale": explainability.model_dump(),
-                    "is_offline_guest": True,
+                    "is_offline_guest": is_guest,
+                    "model_version": "2.0.0",
                 }).execute()
             except Exception as sb_err:
                 logger.warning(f"Could not persist analysis to Supabase: {sb_err}")
@@ -335,8 +376,7 @@ async def get_system_recommendation(payload: AnalysisRequest) -> SystemRecommend
         lat=payload.latitude,
         lon=payload.longitude,
     )
-    annual_rain = payload.annual_rainfall_mm if payload.annual_rainfall_mm is not None else weather_profile.annual_rainfall_mm
-    monthly_rain = payload.monthly_rainfall_mm if payload.monthly_rainfall_mm is not None else weather_profile.monthly_rainfall_mm
+    annual_rain, monthly_rain = _resolve_rainfall(payload, weather_profile)
 
     return generate_recommendation(
         roof_area_sqm=payload.roof_area_sqm,
@@ -362,8 +402,7 @@ async def get_ml_engineering_recommendation(payload: AnalysisRequest) -> Dict[st
         lat=payload.latitude,
         lon=payload.longitude,
     )
-    annual_rain = payload.annual_rainfall_mm if payload.annual_rainfall_mm is not None else weather_profile.annual_rainfall_mm
-    monthly_rain = payload.monthly_rainfall_mm if payload.monthly_rainfall_mm is not None else weather_profile.monthly_rainfall_mm
+    annual_rain, monthly_rain = _resolve_rainfall(payload, weather_profile)
 
     rec = generate_recommendation(
         roof_area_sqm=payload.roof_area_sqm,
@@ -554,27 +593,161 @@ async def get_model_features():
 
 
 # =====================================================================
-# 8. ANALYSIS HISTORY & PERSISTENCE
+# 8. ANALYSIS HISTORY & PERSISTENCE (STRICT USER OWNERSHIP ISOLATION)
 # =====================================================================
 @router.get("/analysis/history")
-async def get_analysis_history():
-    """Retrieve stored analyses history."""
-    items = list(_IN_MEMORY_ANALYSES.values())
+async def get_analysis_history(
+    current_user: Optional[AuthUser] = Depends(get_optional_user),
+):
+    """Retrieve stored analyses history isolated strictly by user ownership.
+    
+    - Authenticated users: returns ONLY analyses belonging to this user.
+    - Guests: returns ONLY anonymous/guest analyses from the current session.
+    Never exposes authenticated users' private records to logged-out guests or other users.
+    """
+    if current_user:
+        items = [
+            record.analysis for record in _IN_MEMORY_ANALYSES.values()
+            if record.user_id == current_user.id
+        ]
+    else:
+        items = [
+            record.analysis for record in _IN_MEMORY_ANALYSES.values()
+            if record.is_guest and record.user_id is None
+        ]
     return {"analyses": items[::-1], "count": len(items)}
 
 
 @router.get("/analysis/{analysis_id}")
-async def get_analysis_by_id(analysis_id: str):
-    """Retrieve a single analysis run by ID."""
-    if analysis_id in _IN_MEMORY_ANALYSES:
-        return _IN_MEMORY_ANALYSES[analysis_id]
-    raise HTTPException(status_code=404, detail=f"Analysis '{analysis_id}' not found.")
+async def get_analysis_by_id(
+    analysis_id: str,
+    current_user: Optional[AuthUser] = Depends(get_optional_user),
+):
+    """Retrieve a single analysis run by ID with strict ownership authorization.
+    
+    If the record belongs to an authenticated user:
+    - Logged-out request -> 401 Unauthorized
+    - Different user request -> 403 Forbidden
+    - Owner request -> 200 OK
+    """
+    record = _IN_MEMORY_ANALYSES.get(analysis_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": f"Analysis '{analysis_id}' not found."}
+        )
+
+    # Ownership check: If owned by an authenticated user
+    if record.user_id is not None:
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "UNAUTHORIZED", "message": "Authentication required to access this private analysis."}
+            )
+        if current_user.id != record.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "FORBIDDEN", "message": "You do not have permission to view another user's analysis."}
+            )
+
+    return record.analysis
 
 
 @router.delete("/analysis/{analysis_id}")
-async def delete_analysis_by_id(analysis_id: str):
-    """Delete a stored analysis by ID."""
-    if analysis_id in _IN_MEMORY_ANALYSES:
-        del _IN_MEMORY_ANALYSES[analysis_id]
-        return {"status": "deleted", "request_id": analysis_id}
-    raise HTTPException(status_code=404, detail=f"Analysis '{analysis_id}' not found.")
+async def delete_analysis_by_id(
+    analysis_id: str,
+    current_user: Optional[AuthUser] = Depends(get_optional_user),
+):
+    """Delete a stored analysis with ownership verification."""
+    record = _IN_MEMORY_ANALYSES.get(analysis_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": f"Analysis '{analysis_id}' not found."}
+        )
+
+    # Ownership check: Only owner may delete an authenticated analysis
+    if record.user_id is not None:
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "UNAUTHORIZED", "message": "Authentication required to delete this analysis."}
+            )
+        if current_user.id != record.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "FORBIDDEN", "message": "You are not authorized to delete another user's analysis."}
+            )
+
+    del _IN_MEMORY_ANALYSES[analysis_id]
+
+    # Delete from Supabase if connected
+    sb_client = get_supabase_client()
+    if sb_client is not None and record.user_id:
+        try:
+            sb_client.table("analyses").delete().eq("id", analysis_id).eq("user_id", record.user_id).execute()
+        except Exception as e:
+            logger.warning(f"Could not delete analysis from Supabase: {e}")
+
+    return {"status": "deleted", "request_id": analysis_id}
+
+
+@router.post("/analysis/{analysis_id}/claim")
+async def claim_analysis(
+    analysis_id: str,
+    current_user: AuthUser = Depends(get_current_user),
+):
+    """Claim an anonymous guest analysis to the logged-in user's account."""
+    record = _IN_MEMORY_ANALYSES.get(analysis_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": f"Analysis '{analysis_id}' not found."}
+        )
+
+    if record.user_id and record.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "FORBIDDEN", "message": "This analysis already belongs to another user account."}
+        )
+
+    record.user_id = current_user.id
+    record.is_guest = False
+    record.analysis.user_id = current_user.id
+    record.analysis.is_guest = False
+
+    return {
+        "status": "claimed",
+        "request_id": analysis_id,
+        "user_id": current_user.id,
+        "message": "Analysis successfully saved to your account.",
+    }
+
+
+@router.delete("/user/account")
+async def delete_user_account_and_data(
+    current_user: AuthUser = Depends(get_current_user),
+):
+    """Permanently delete authenticated user's account and all associated analyses."""
+    keys_to_delete = [
+        k for k, rec in _IN_MEMORY_ANALYSES.items()
+        if rec.user_id == current_user.id
+    ]
+    for k in keys_to_delete:
+        del _IN_MEMORY_ANALYSES[k]
+
+    sb_client = get_supabase_client()
+    if sb_client is not None:
+        try:
+            sb_client.table("analyses").delete().eq("user_id", current_user.id).execute()
+            sb_client.table("properties").delete().eq("user_id", current_user.id).execute()
+            sb_client.table("profiles").delete().eq("id", current_user.id).execute()
+        except Exception as e:
+            logger.warning(f"Could not delete user account records from Supabase: {e}")
+
+    return {
+        "status": "deleted",
+        "user_id": current_user.id,
+        "deleted_analyses_count": len(keys_to_delete),
+        "message": f"User account {current_user.id} and all associated analyses have been permanently deleted.",
+    }

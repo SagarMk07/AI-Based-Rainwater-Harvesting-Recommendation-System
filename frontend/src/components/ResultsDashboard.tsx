@@ -18,14 +18,23 @@ import { StorageOptimizationChart } from './StorageOptimizationChart'
 import { SystemSchematic } from './SystemSchematic'
 import { PropertyMap } from './PropertyMap'
 import { RainfallIntelligence } from './RainfallIntelligence'
+import PageHeader from './ui/PageHeader'
 
 interface Props {
   data: AnalysisResponse
   onReset: () => void
   onSave: (data: AnalysisResponse) => void
+  isGuest?: boolean
+  onPromptSaveAccount?: () => void
 }
 
-export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => {
+export const ResultsDashboard: React.FC<Props> = ({
+  data,
+  onReset,
+  onSave,
+  isGuest = false,
+  onPromptSaveAccount,
+}) => {
   const [saved, setSaved] = useState(false)
 
   const { recommendation, water_balance, tank_optimization_candidates, explainability, weather } = data
@@ -33,6 +42,9 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
   const handleSaveClick = () => {
     onSave(data)
     setSaved(true)
+    if (isGuest && onPromptSaveAccount) {
+      onPromptSaveAccount()
+    }
     setTimeout(() => setSaved(false), 3000)
   }
 
@@ -54,128 +66,126 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* 1. TOP HEADER & SUMMARY */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center space-x-1.5 rounded-full bg-forest-50 px-3 py-1 text-xs font-semibold text-forest-700 border border-forest-200">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Hydrological Simulation Verified</span>
-            </span>
-            <span className="text-xs text-slate-400 font-mono">ID: {data.request_id}</span>
+      <PageHeader
+        eyebrow={
+          <span className="inline-flex items-center space-x-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Hydrological Simulation Verified</span>
+            <span className="text-slate-400 font-mono text-[10px]">ID: {data.request_id}</span>
+          </span>
+        }
+        title="Your Rainwater Harvesting Analysis"
+        description={`Location: ${weather.city}, ${weather.state} • Rainfall: ${weather.annual_rainfall_mm} mm/yr • Roof Area: ${explainability.engineering_factors?.catchment_sqm || 200} m² • Demand: ${recommendation.annual_demand_litres.toLocaleString()} L/yr`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2 no-print">
+            <button
+              onClick={handleSaveClick}
+              disabled={saved}
+              className="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-subtle flex items-center space-x-1.5 transition-colors disabled:bg-forest-50 disabled:text-forest-700"
+            >
+              {saved ? <CheckCircle className="h-3.5 w-3.5 text-forest-600" /> : <Bookmark className="h-3.5 w-3.5" />}
+              <span>{saved ? 'Saved!' : 'Save Analysis'}</span>
+            </button>
+            <button
+              onClick={handlePrint}
+              className="h-10 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-subtle flex items-center space-x-1.5 transition-colors"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              <span>Print Report</span>
+            </button>
+            <button
+              onClick={onReset}
+              className="h-10 px-3.5 rounded-xl bg-forest-700 hover:bg-forest-800 text-white text-xs font-bold shadow-subtle flex items-center space-x-1.5 transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>New Analysis</span>
+            </button>
           </div>
-
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 mt-1">
-            Your Rainwater Harvesting Analysis
-          </h1>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 mt-2 font-medium">
-            <span>📍 <strong>Location:</strong> {weather.city}, {weather.state}</span>
-            <span>🌧️ <strong>Rainfall:</strong> {weather.annual_rainfall_mm} mm/yr</span>
-            <span>🏠 <strong>Roof Area:</strong> {explainability.engineering_factors?.catchment_sqm || 200} m²</span>
-            <span>🚰 <strong>Annual Demand:</strong> {recommendation.annual_demand_litres.toLocaleString()} L/yr</span>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2 self-start sm:self-auto no-print">
-          <button
-            onClick={handleSaveClick}
-            disabled={saved}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-subtle flex items-center space-x-1.5 transition-colors disabled:bg-forest-50 disabled:text-forest-700"
-          >
-            {saved ? <CheckCircle className="h-3.5 w-3.5 text-forest-600" /> : <Bookmark className="h-3.5 w-3.5" />}
-            <span>{saved ? 'Saved!' : 'Save Analysis'}</span>
-          </button>
-          <button
-            onClick={handlePrint}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-subtle flex items-center space-x-1.5 transition-colors"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            <span>Print Report</span>
-          </button>
-          <button
-            onClick={onReset}
-            className="px-3.5 py-2 rounded-xl bg-forest-700 hover:bg-forest-800 text-white text-xs font-bold shadow-subtle flex items-center space-x-1.5 transition-colors"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span>New Analysis</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* 2. FOUR PRIMARY METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Harvest Potential */}
-        <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white p-5 shadow-subtle">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider">
-              💧 Harvest Potential
-            </span>
-            <span className="text-[10px] font-mono bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-bold">
-              Gross Runoff
-            </span>
+        <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white p-5 shadow-subtle flex flex-col justify-between h-full min-w-0">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-sky-800 uppercase tracking-wider">
+                💧 Harvest Potential
+              </span>
+              <span className="text-[10px] font-mono bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-bold">
+                Gross Runoff
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-sky-950 font-mono mt-2">
+              {recommendation.annual_gross_harvest_litres.toLocaleString()}{' '}
+              <span className="text-sm font-normal text-slate-500">L/yr</span>
+            </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-sky-950 font-mono mt-2">
-            {recommendation.annual_gross_harvest_litres.toLocaleString()}{' '}
-            <span className="text-sm font-normal text-slate-500">L/yr</span>
-          </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
+          <span className="text-[11px] text-slate-500 mt-2 block border-t border-sky-100/60 pt-2">
             {recommendation.annual_collectable_litres.toLocaleString()} L net collectable after first-flush
           </span>
         </div>
 
         {/* Metric 2: Annual Rainfall */}
-        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-white p-5 shadow-subtle">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider">
-              🌧️ Annual Rainfall
-            </span>
-            <span className="text-[10px] font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold">
-              IMD Normal
-            </span>
+        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-white p-5 shadow-subtle flex flex-col justify-between h-full min-w-0">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider">
+                🌧️ Annual Rainfall
+              </span>
+              <span className="text-[10px] font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold">
+                IMD Normal
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-indigo-950 font-mono mt-2">
+              {weather.annual_rainfall_mm}{' '}
+              <span className="text-sm font-normal text-slate-500">mm</span>
+            </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-indigo-950 font-mono mt-2">
-            {weather.annual_rainfall_mm}{' '}
-            <span className="text-sm font-normal text-slate-500">mm</span>
-          </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
+          <span className="text-[11px] text-slate-500 mt-2 block border-t border-indigo-100/60 pt-2">
             Peak precipitation during monsoon months
           </span>
         </div>
 
         {/* Metric 3: Water Demand */}
-        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-white p-5 shadow-subtle">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              🚰 Water Demand
-            </span>
-            <span className="text-[10px] font-mono bg-slate-200 text-slate-800 px-2 py-0.5 rounded font-bold">
-              Household
-            </span>
+        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-white p-5 shadow-subtle flex flex-col justify-between h-full min-w-0">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                🚰 Water Demand
+              </span>
+              <span className="text-[10px] font-mono bg-slate-200 text-slate-800 px-2 py-0.5 rounded font-bold">
+                Household
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 font-mono mt-2">
+              {recommendation.annual_demand_litres.toLocaleString()}{' '}
+              <span className="text-sm font-normal text-slate-500">L/yr</span>
+            </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 font-mono mt-2">
-            {recommendation.annual_demand_litres.toLocaleString()}{' '}
-            <span className="text-sm font-normal text-slate-500">L/yr</span>
-          </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
+          <span className="text-[11px] text-slate-500 mt-2 block border-t border-slate-100 pt-2">
             {(recommendation.annual_demand_litres / 365).toFixed(0)} L/day continuous requirement
           </span>
         </div>
 
         {/* Metric 4: Potential Savings */}
-        <div className="rounded-2xl border border-forest-100 bg-gradient-to-br from-forest-50/70 via-white to-white p-5 shadow-subtle">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-forest-800 uppercase tracking-wider">
-              💰 Potential Savings
-            </span>
-            <span className="text-[10px] font-mono bg-forest-100 text-forest-800 px-2 py-0.5 rounded font-bold">
-              {recommendation.water_savings_percentage}% Met
-            </span>
+        <div className="rounded-2xl border border-forest-100 bg-gradient-to-br from-forest-50/70 via-white to-white p-5 shadow-subtle flex flex-col justify-between h-full min-w-0">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-forest-800 uppercase tracking-wider">
+                💰 Potential Savings
+              </span>
+              <span className="text-[10px] font-mono bg-forest-100 text-forest-800 px-2 py-0.5 rounded font-bold">
+                {recommendation.water_savings_percentage}% Met
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-forest-950 font-mono mt-2">
+              ₹{recommendation.annual_financial_savings_inr.toLocaleString()}{' '}
+              <span className="text-sm font-normal text-slate-500">/yr</span>
+            </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-forest-950 font-mono mt-2">
-            ₹{recommendation.annual_financial_savings_inr.toLocaleString()}{' '}
-            <span className="text-sm font-normal text-slate-500">/yr</span>
-          </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
+          <span className="text-[11px] text-slate-500 mt-2 block border-t border-forest-100/60 pt-2">
             {recommendation.annual_usable_litres.toLocaleString()} L domestic water replaced
           </span>
         </div>
@@ -267,25 +277,27 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Minimum Practical Tier */}
             {data.sizing_tiers.minimum && (
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Minimum Practical
-                  </span>
-                  <span className="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold">
-                    Buffer Reserve
-                  </span>
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between h-full min-w-0">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Minimum Practical
+                    </span>
+                    <span className="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold">
+                      Buffer Reserve
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-slate-900 font-mono">
+                    {data.sizing_tiers.minimum.capacity_litres.toLocaleString()}{' '}
+                    <span className="text-xs font-normal text-slate-500">L</span>
+                  </div>
+                  <div className="text-xs font-mono text-slate-600 space-y-0.5">
+                    <div>Demand Met: <strong>{data.sizing_tiers.minimum.demand_met_pct}%</strong></div>
+                    <div>CapEx: <strong>₹{data.sizing_tiers.minimum.estimated_cost_inr.toLocaleString()}</strong></div>
+                    <div>Payback: <strong>{data.sizing_tiers.minimum.payback_years} yrs</strong></div>
+                  </div>
                 </div>
-                <div className="text-2xl font-black text-slate-900 font-mono">
-                  {data.sizing_tiers.minimum.capacity_litres.toLocaleString()}{' '}
-                  <span className="text-xs font-normal text-slate-500">L</span>
-                </div>
-                <div className="text-xs font-mono text-slate-600 space-y-0.5">
-                  <div>Demand Met: <strong>{data.sizing_tiers.minimum.demand_met_pct}%</strong></div>
-                  <div>CapEx: <strong>₹{data.sizing_tiers.minimum.estimated_cost_inr.toLocaleString()}</strong></div>
-                  <div>Payback: <strong>{data.sizing_tiers.minimum.payback_years} yrs</strong></div>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-200 pt-2 mt-2">
+                <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-200 pt-2 mt-3">
                   {data.sizing_tiers.minimum.rationale}
                 </p>
               </div>
@@ -293,28 +305,30 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
 
             {/* Recommended Optimal Tier */}
             {data.sizing_tiers.recommended && (
-              <div className="p-4 rounded-xl border-2 border-forest-600 bg-forest-50/50 space-y-2 relative shadow-sm">
+              <div className="p-4 rounded-xl border-2 border-forest-600 bg-forest-50/50 flex flex-col justify-between h-full min-w-0 relative shadow-sm">
                 <span className="absolute -top-2.5 right-4 bg-forest-700 text-white font-mono text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full">
                   Recommended Optimum
                 </span>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-forest-900 uppercase tracking-wider">
-                    Balanced Sizing
-                  </span>
-                  <span className="text-[10px] font-mono bg-forest-200 text-forest-800 px-2 py-0.5 rounded font-bold">
-                    Sweet Spot
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-forest-900 uppercase tracking-wider">
+                      Balanced Sizing
+                    </span>
+                    <span className="text-[10px] font-mono bg-forest-200 text-forest-800 px-2 py-0.5 rounded font-bold">
+                      Sweet Spot
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-forest-950 font-mono">
+                    {data.sizing_tiers.recommended.capacity_litres.toLocaleString()}{' '}
+                    <span className="text-xs font-normal text-slate-500">L</span>
+                  </div>
+                  <div className="text-xs font-mono text-forest-800 space-y-0.5">
+                    <div>Demand Met: <strong>{data.sizing_tiers.recommended.demand_met_pct}%</strong></div>
+                    <div>CapEx: <strong>₹{data.sizing_tiers.recommended.estimated_cost_inr.toLocaleString()}</strong></div>
+                    <div>Payback: <strong>{data.sizing_tiers.recommended.payback_years} yrs</strong></div>
+                  </div>
                 </div>
-                <div className="text-2xl font-black text-forest-950 font-mono">
-                  {data.sizing_tiers.recommended.capacity_litres.toLocaleString()}{' '}
-                  <span className="text-xs font-normal text-slate-500">L</span>
-                </div>
-                <div className="text-xs font-mono text-forest-800 space-y-0.5">
-                  <div>Demand Met: <strong>{data.sizing_tiers.recommended.demand_met_pct}%</strong></div>
-                  <div>CapEx: <strong>₹{data.sizing_tiers.recommended.estimated_cost_inr.toLocaleString()}</strong></div>
-                  <div>Payback: <strong>{data.sizing_tiers.recommended.payback_years} yrs</strong></div>
-                </div>
-                <p className="text-[11px] text-forest-900 leading-relaxed border-t border-forest-200 pt-2 mt-2 font-medium">
+                <p className="text-[11px] text-forest-900 leading-relaxed border-t border-forest-200 pt-2 mt-3 font-medium">
                   {data.sizing_tiers.recommended.rationale}
                 </p>
               </div>
@@ -322,25 +336,27 @@ export const ResultsDashboard: React.FC<Props> = ({ data, onReset, onSave }) => 
 
             {/* Upper Practical Tier */}
             {data.sizing_tiers.upper_practical && (
-              <div className="p-4 rounded-xl border border-sky-200 bg-sky-50/50 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-sky-800 uppercase tracking-wider">
-                    Upper Practical
-                  </span>
-                  <span className="text-[10px] font-mono bg-sky-200 text-sky-800 px-2 py-0.5 rounded font-bold">
-                    Monsoon Surge
-                  </span>
+              <div className="p-4 rounded-xl border border-sky-200 bg-sky-50/50 flex flex-col justify-between h-full min-w-0">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-sky-800 uppercase tracking-wider">
+                      Upper Practical
+                    </span>
+                    <span className="text-[10px] font-mono bg-sky-200 text-sky-800 px-2 py-0.5 rounded font-bold">
+                      Monsoon Surge
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-sky-950 font-mono">
+                    {data.sizing_tiers.upper_practical.capacity_litres.toLocaleString()}{' '}
+                    <span className="text-xs font-normal text-slate-500">L</span>
+                  </div>
+                  <div className="text-xs font-mono text-sky-900 space-y-0.5">
+                    <div>Demand Met: <strong>{data.sizing_tiers.upper_practical.demand_met_pct}%</strong></div>
+                    <div>CapEx: <strong>₹{data.sizing_tiers.upper_practical.estimated_cost_inr.toLocaleString()}</strong></div>
+                    <div>Payback: <strong>{data.sizing_tiers.upper_practical.payback_years} yrs</strong></div>
+                  </div>
                 </div>
-                <div className="text-2xl font-black text-sky-950 font-mono">
-                  {data.sizing_tiers.upper_practical.capacity_litres.toLocaleString()}{' '}
-                  <span className="text-xs font-normal text-slate-500">L</span>
-                </div>
-                <div className="text-xs font-mono text-sky-900 space-y-0.5">
-                  <div>Demand Met: <strong>{data.sizing_tiers.upper_practical.demand_met_pct}%</strong></div>
-                  <div>CapEx: <strong>₹{data.sizing_tiers.upper_practical.estimated_cost_inr.toLocaleString()}</strong></div>
-                  <div>Payback: <strong>{data.sizing_tiers.upper_practical.payback_years} yrs</strong></div>
-                </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed border-t border-sky-200 pt-2 mt-2">
+                <p className="text-[11px] text-slate-600 leading-relaxed border-t border-sky-200 pt-2 mt-3">
                   {data.sizing_tiers.upper_practical.rationale}
                 </p>
               </div>

@@ -1,6 +1,8 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Droplets, ShieldCheck, Cpu, ArrowUpRight } from 'lucide-react'
 import type { NavTab } from './Navbar'
+import { useAuth } from '../context/AuthContext'
 
 interface FooterProps {
   onTabChange?: (tab: NavTab) => void
@@ -8,6 +10,8 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onTabChange, onOpenTelemetry }) => {
+  const { user } = useAuth()
+
   return (
     <footer className="w-full border-t border-slate-200/90 bg-white py-10 transition-colors">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
@@ -49,40 +53,40 @@ export const Footer: React.FC<FooterProps> = ({ onTabChange, onOpenTelemetry }) 
             </h4>
             <ul className="space-y-1.5 text-xs text-slate-600">
               <li>
-                <button
-                  type="button"
+                <Link
+                  to={user ? '/dashboard' : '/'}
                   onClick={() => onTabChange?.('dashboard')}
                   className="hover:text-forest-700 transition-colors"
                 >
-                  Overview & Dashboard
-                </button>
+                  {user ? 'Dashboard Overview' : 'Platform Homepage'}
+                </Link>
               </li>
               <li>
-                <button
-                  type="button"
+                <Link
+                  to="/analyze"
                   onClick={() => onTabChange?.('wizard')}
                   className="hover:text-forest-700 transition-colors"
                 >
                   5-Step Property Wizard
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  type="button"
+                <Link
+                  to={user ? '/history' : '/login'}
                   onClick={() => onTabChange?.('history')}
                   className="hover:text-forest-700 transition-colors"
                 >
                   Saved Analyses History
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  type="button"
+                <Link
+                  to="/about"
                   onClick={() => onTabChange?.('about')}
                   className="hover:text-forest-700 transition-colors"
                 >
                   Hydrological Methodology & Principles
-                </button>
+                </Link>
               </li>
             </ul>
           </div>

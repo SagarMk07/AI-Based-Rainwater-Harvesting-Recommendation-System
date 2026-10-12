@@ -17,6 +17,8 @@ import { DashboardSummary } from '../components/DashboardSummary'
 import { LandingHero } from '../components/LandingHero'
 import { AboutSection } from '../components/AboutSection'
 import { StatusCard } from '../components/StatusCard'
+import { useAuth } from '../context/AuthContext'
+import PageHeader from '../components/ui/PageHeader'
 
 export const HomePage: React.FC = () => {
   const {
@@ -33,7 +35,10 @@ export const HomePage: React.FC = () => {
     deleteFromHistory,
     clearHistory,
     openTelemetry,
+    openAuth,
   } = useOutletContext<AppContextType>()
+
+  const { isGuest } = useAuth()
 
   const [analyzing, setAnalyzing] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
@@ -141,19 +146,11 @@ export const HomePage: React.FC = () => {
         {/* Tab View 2: WIZARD */}
         {activeTab === 'wizard' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="border-b border-slate-200 pb-4">
-              <div className="inline-flex items-center space-x-2 rounded-full bg-forest-50 px-3 py-1 text-xs font-semibold text-forest-700 border border-forest-200 mb-2">
-                <Calculator className="h-3.5 w-3.5" />
-                <span>5-Step Guided Configuration</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Site & Catchment Input Specification
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
-                Provide property dimensions, select location weather data, and specify water demand.
-                You can also choose any of the 4 benchmark test scenarios to pre-fill standard parameters.
-              </p>
-            </div>
+            <PageHeader
+              eyebrow="5-Step Guided Configuration"
+              title="Site & Catchment Input Specification"
+              description="Provide property dimensions, select location weather data, and specify water demand. You can also choose any of the 4 benchmark test scenarios to pre-fill standard parameters."
+            />
 
             <AnalysisForm onSubmit={handleRunAnalysis} loading={analyzing} />
           </div>
@@ -170,6 +167,8 @@ export const HomePage: React.FC = () => {
                   window.scrollTo({ top: 0, behavior: 'smooth' })
                 }}
                 onSave={saveToHistory}
+                isGuest={isGuest}
+                onPromptSaveAccount={() => openAuth('signup')}
               />
             ) : (
               <div className="rounded-3xl border border-slate-200/90 bg-white p-12 text-center shadow-card max-w-2xl mx-auto my-12 space-y-5">

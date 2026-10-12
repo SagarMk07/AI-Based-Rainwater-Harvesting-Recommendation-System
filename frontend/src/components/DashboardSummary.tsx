@@ -10,6 +10,7 @@ import {
   Cpu,
 } from 'lucide-react'
 import type { AnalysisResponse } from '../types/analysis'
+import { PageHeader } from './ui/PageHeader'
 
 interface DashboardSummaryProps {
   history: AnalysisResponse[]
@@ -50,114 +51,119 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Top Banner & Quick Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
+      <PageHeader
+        eyebrow={
           <span className="text-xs uppercase font-mono font-bold text-forest-700 tracking-wider">
             Environmental Intelligence Overview
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-            System Dashboard
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Real-time summary of evaluated catchments, simulated storage capacities, and ecological savings.
-          </p>
-        </div>
+        }
+        title="System Dashboard"
+        description="Real-time summary of evaluated catchments, simulated storage capacities, and ecological savings."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={onStartNew}
+              className="h-10 px-5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-subtle inline-flex items-center space-x-1.5 transition-all"
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span>+ New Analysis</span>
+            </button>
 
-        <div className="flex items-center space-x-2.5 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={onStartNew}
-            className="px-5 py-2.5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-subtle flex items-center space-x-1.5 transition-all"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>+ New Analysis</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenTelemetry}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-subtle flex items-center space-x-1.5 transition-colors"
-          >
-            <Cpu className="h-4 w-4 text-forest-600" />
-            <span>ML Models</span>
-          </button>
-        </div>
-      </div>
+            <button
+              type="button"
+              onClick={onOpenTelemetry}
+              className="h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-subtle inline-flex items-center space-x-1.5 transition-colors"
+            >
+              <Cpu className="h-4 w-4 text-forest-600" />
+              <span>ML Models</span>
+            </button>
+          </>
+        }
+      />
 
       {/* Aggregate Overview Metrics (Real calculated values from history) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle flex flex-col justify-between h-full min-w-0">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
               Evaluated Properties
             </span>
-            <span className="h-7 w-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+            <span className="h-7 w-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center flex-shrink-0">
               <Layers className="h-3.5 w-3.5" />
             </span>
           </div>
-          <div className="text-2xl font-black text-slate-900 font-mono">
-            {history.length} <span className="text-xs font-normal text-slate-400">sites</span>
+          <div className="space-y-1">
+            <div className="text-2xl font-black text-slate-900 font-mono truncate">
+              {history.length} <span className="text-xs font-normal text-slate-400">sites</span>
+            </div>
+            <span className="text-[11px] text-slate-400 block truncate">
+              {history.length === 0 ? 'No property evaluated yet' : 'Stored in session archives'}
+            </span>
           </div>
-          <span className="text-[11px] text-slate-400 block">
-            {history.length === 0 ? 'No property evaluated yet' : 'Stored in session archives'}
-          </span>
         </div>
 
         {/* Metric 2 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-sky-700 uppercase tracking-wider">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle flex flex-col justify-between h-full min-w-0">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold text-sky-700 uppercase tracking-wider truncate">
               Total Harvest Potential
             </span>
-            <span className="h-7 w-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+            <span className="h-7 w-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
               <Droplet className="h-3.5 w-3.5" />
             </span>
           </div>
-          <div className="text-2xl font-black text-sky-950 font-mono">
-            {totalHarvestPotential.toLocaleString()}{' '}
-            <span className="text-xs font-normal text-slate-400">L/yr</span>
+          <div className="space-y-1">
+            <div className="text-2xl font-black text-sky-950 font-mono truncate">
+              {totalHarvestPotential.toLocaleString()}{' '}
+              <span className="text-xs font-normal text-slate-400">L/yr</span>
+            </div>
+            <span className="text-[11px] text-slate-400 block truncate">
+              Aggregated gross catchment yield
+            </span>
           </div>
-          <span className="text-[11px] text-slate-400 block">
-            Aggregated gross catchment yield
-          </span>
         </div>
 
         {/* Metric 3 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-forest-700 uppercase tracking-wider">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle flex flex-col justify-between h-full min-w-0">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold text-forest-700 uppercase tracking-wider truncate">
               Domestic Water Replaced
             </span>
-            <span className="h-7 w-7 rounded-lg bg-forest-50 text-forest-600 flex items-center justify-center">
+            <span className="h-7 w-7 rounded-lg bg-forest-50 text-forest-600 flex items-center justify-center flex-shrink-0">
               <ShieldCheck className="h-3.5 w-3.5" />
             </span>
           </div>
-          <div className="text-2xl font-black text-forest-950 font-mono">
-            {totalUsablePotential.toLocaleString()}{' '}
-            <span className="text-xs font-normal text-slate-400">L/yr</span>
+          <div className="space-y-1">
+            <div className="text-2xl font-black text-forest-950 font-mono truncate">
+              {totalUsablePotential.toLocaleString()}{' '}
+              <span className="text-xs font-normal text-slate-400">L/yr</span>
+            </div>
+            <span className="text-[11px] text-slate-400 block truncate">
+              Direct municipal replacement
+            </span>
           </div>
-          <span className="text-[11px] text-slate-400 block">
-            Direct municipal replacement
-          </span>
         </div>
 
         {/* Metric 4 */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle flex flex-col justify-between h-full min-w-0">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider truncate">
               Average Demand Met
             </span>
-            <span className="h-7 w-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <span className="h-7 w-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
               <TrendingUp className="h-3.5 w-3.5" />
             </span>
           </div>
-          <div className="text-2xl font-black text-indigo-950 font-mono">
-            {avgDemandMet}%
+          <div className="space-y-1">
+            <div className="text-2xl font-black text-indigo-950 font-mono truncate">
+              {avgDemandMet}%
+            </div>
+            <span className="text-[11px] text-slate-400 block truncate">
+              Mean household self-sufficiency
+            </span>
           </div>
-          <span className="text-[11px] text-slate-400 block">
-            Mean household self-sufficiency
-          </span>
         </div>
       </div>
 
@@ -180,7 +186,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
             <button
               onClick={() => onSelectAnalysis(activeLatest)}
-              className="px-4 py-2 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-subtle flex items-center space-x-1.5 transition-colors self-start sm:self-auto"
+              className="h-10 px-4 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-subtle inline-flex items-center space-x-1.5 transition-colors self-start sm:self-auto flex-shrink-0"
             >
               <span>View Full Report</span>
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -188,30 +194,30 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 block uppercase">Recommended System</span>
-              <span className="font-bold text-slate-900 block truncate" title={activeLatest.recommendation.system_type}>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
+              <span className="text-[10px] text-slate-400 block uppercase truncate">Recommended System</span>
+              <span className="font-bold text-slate-900 block truncate mt-1" title={activeLatest.recommendation.system_type}>
                 {activeLatest.recommendation.system_type}
               </span>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 block uppercase">Optimal Tank</span>
-              <span className="font-bold text-forest-700">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
+              <span className="text-[10px] text-slate-400 block uppercase truncate">Optimal Tank</span>
+              <span className="font-bold text-forest-700 block truncate mt-1">
                 {activeLatest.recommendation.optimal_tank_capacity_litres.toLocaleString()} Litres
               </span>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 block uppercase">Harvest Potential</span>
-              <span className="font-bold text-sky-800">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
+              <span className="text-[10px] text-slate-400 block uppercase truncate">Harvest Potential</span>
+              <span className="font-bold text-sky-800 block truncate mt-1">
                 {activeLatest.recommendation.annual_gross_harvest_litres.toLocaleString()} L
               </span>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 block uppercase">Demand Coverage</span>
-              <span className="font-bold text-indigo-700">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
+              <span className="text-[10px] text-slate-400 block uppercase truncate">Demand Coverage</span>
+              <span className="font-bold text-indigo-700 block truncate mt-1">
                 {activeLatest.recommendation.water_savings_percentage}% Met
               </span>
             </div>

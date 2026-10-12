@@ -1,32 +1,30 @@
 import React from 'react'
 import { Cpu, Calculator, Sliders, Compass, AlertTriangle, BookOpen } from 'lucide-react'
+import { PageHeader } from './ui/PageHeader'
 
 export const AboutSection: React.FC = () => {
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 sm:p-10 space-y-8 animate-in fade-in duration-300">
-      <div className="border-b border-slate-100 pb-5">
-        <div className="inline-flex items-center space-x-2 rounded-full bg-forest-50 px-3 py-1 text-xs font-semibold text-forest-700 border border-forest-200 mb-2">
-          <BookOpen className="h-3.5 w-3.5" />
-          <span>Engineering Methodology</span>
-        </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-          Core Architectural Principles & Scientific Foundations
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl">
-          Designed as an engineering-grade environmental intelligence system. We enforce a strict separation
-          between data-driven machine learning and deterministic physical civil formulas.
-        </p>
-      </div>
+    <div className="space-y-8 animate-in fade-in duration-300">
+      <PageHeader
+        eyebrow={
+          <span className="inline-flex items-center space-x-1.5 rounded-full bg-forest-50 px-3 py-1 text-xs font-semibold text-forest-700 border border-forest-200">
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>Engineering Methodology</span>
+          </span>
+        }
+        title="Core Architectural Principles & Scientific Foundations"
+        description="Designed as an engineering-grade environmental intelligence system. We enforce a strict separation between data-driven machine learning and deterministic physical civil formulas."
+      />
 
       {/* Core Principle Callout */}
-      <div className="p-5 rounded-2xl bg-forest-50/70 border border-forest-200 space-y-2">
+      <div className="p-5 sm:p-6 rounded-2xl bg-forest-50/70 border border-forest-200 space-y-2">
         <span className="text-xs font-bold uppercase tracking-wider text-forest-900 font-mono">
           Primary Axiom
         </span>
-        <p className="text-sm font-semibold text-forest-950 leading-relaxed">
+        <p className="text-sm sm:text-base font-semibold text-forest-950 leading-relaxed">
           &ldquo;Do NOT use machine learning for calculations that can be accurately performed using engineering formulas.&rdquo;
         </p>
-        <p className="text-xs text-forest-800 leading-relaxed">
+        <p className="text-xs sm:text-sm text-forest-800 leading-relaxed">
           Rule-based physical calculations are never mislabeled as &ldquo;AI&rdquo;. Machine learning is strictly deployed for
           uncertain time-series weather patterns where empirical data is required.
         </p>

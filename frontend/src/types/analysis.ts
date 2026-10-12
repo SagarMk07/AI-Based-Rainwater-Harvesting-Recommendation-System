@@ -125,6 +125,9 @@ export interface ExplainabilityResponse {
 export interface AnalysisResponse {
   request_id: string
   timestamp: string
+  user_id?: string | null
+  is_guest?: boolean
+  model_version?: string
   weather: CityRainfallProfile
   recommendation: SystemRecommendation
   water_balance: WaterBalanceResult

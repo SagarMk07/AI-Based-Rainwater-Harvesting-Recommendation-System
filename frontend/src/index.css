@@ -3,18 +3,46 @@
 @tailwind utilities;
 
 @layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   html {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
   
   body {
     @apply bg-slate-50 text-slate-900 antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply text-slate-900 tracking-tight font-bold;
+  }
+}
+
+@layer components {
+  /* Global Content Container ensuring strict 1440px max grid and responsive gutters */
+  .content-container {
+    width: 100%;
+    max-width: 80rem; /* 1280px / 7xl */
+    margin-inline: auto;
+    padding-inline: clamp(1rem, 2.5vw, 2rem);
+  }
+
+  /* Consistent interactive form controls */
+  .form-control-base {
+    @apply h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs sm:text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-forest-600 focus:outline-none focus:ring-2 focus:ring-forest-500/20;
+  }
+
+  /* Equal height card grid items */
+  .grid-card-equal {
+    @apply h-full flex flex-col justify-between min-w-0;
   }
 }
 

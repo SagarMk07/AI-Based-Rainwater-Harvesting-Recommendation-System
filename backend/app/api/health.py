@@ -1,7 +1,8 @@
 """Health check router providing detailed system and database status."""
 
-from datetime import datetime, timezone
+import os
 import sys
+from datetime import datetime, timezone
 from fastapi import APIRouter
 from backend.app.config import settings
 from backend.app.database.connection import get_db_status
@@ -20,12 +21,21 @@ async def check_health() -> HealthResponse:
     """System health check endpoint verifying core services and database status."""
     db_info = get_db_status()
 
-    import os
     model_dir = os.path.join(settings.BASE_DIR, settings.MODEL_DIR)
-    has_ml = os.path.exists(os.path.join(model_dir, "rainfall_regressor.joblib")) and os.path.exists(os.path.join(model_dir, "rainfall_classifier.joblib"))
-    
+    has_ml = (
+        os.path.exists(os.path.join(model_dir, "rainfall_regressor.joblib"))
+        and os.path.exists(os.path.join(model_dir, "rainfall_classifier.joblib"))
+        and os.path.exists(os.path.join(model_dir, "system_recommendation_model.joblib"))
+    )
+
+    db_status_str = "ok" if db_info.get("connected") else ("standby" if db_info.get("status") == "unconfigured" else "degraded")
+
     return HealthResponse(
         status="ok",
+        api="ok",
+        database_status=db_status_str,
+        ml_model="ok" if has_ml else "standby",
+        weather_service="ok",
         timestamp=datetime.now(timezone.utc).isoformat(),
         environment=EnvironmentInfo(
             app_name=settings.APP_NAME,
@@ -48,4 +58,3 @@ async def check_health() -> HealthResponse:
             optimization="active",
         ),
     )
-

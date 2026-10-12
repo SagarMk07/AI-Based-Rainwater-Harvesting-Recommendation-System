@@ -33,8 +33,8 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-forest-600/15 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-water-500/15 blur-3xl pointer-events-none" />
 
-        <div className="relative px-6 py-12 sm:px-12 sm:py-16 lg:py-20 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="relative p-6 sm:p-10 lg:p-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Content Column */}
             <div className="lg:col-span-7 space-y-6">
               <div className="inline-flex items-center space-x-2 rounded-full bg-forest-500/10 px-3.5 py-1 text-xs font-semibold text-forest-400 border border-forest-500/20">
@@ -58,7 +58,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                 <button
                   type="button"
                   onClick={onStartAnalysis}
-                  className="px-6 py-3.5 rounded-xl bg-forest-600 hover:bg-forest-500 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center space-x-2"
+                  className="h-11 px-6 rounded-xl bg-forest-600 hover:bg-forest-500 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all inline-flex items-center space-x-2"
                 >
                   <span>Analyze My Property</span>
                   <ArrowRight className="h-4 w-4" />
@@ -67,7 +67,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
                 <button
                   type="button"
                   onClick={scrollToHowItWorks}
-                  className="px-5 py-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border border-slate-700 font-semibold text-sm transition-colors"
+                  className="h-11 px-5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border border-slate-700 font-semibold text-sm transition-colors inline-flex items-center"
                 >
                   See How It Works
                 </button>
@@ -221,43 +221,51 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <span className="text-2xl font-black font-mono text-forest-700">01</span>
-            <h3 className="text-base font-bold text-slate-900">Enter Property Details</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Specify your city, roof material (RCC, sheet, tiles), catchment area in m², and household water usage.
-            </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <span className="text-2xl font-black font-mono text-forest-700 block mb-2">01</span>
+              <h3 className="text-base font-bold text-slate-900">Enter Property Details</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Specify your city, roof material (RCC, sheet, tiles), catchment area in m², and household water usage.
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <span className="text-2xl font-black font-mono text-water-600">02</span>
-            <h3 className="text-base font-bold text-slate-900">Analyze Rainfall</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              The engine accesses 30-year IMD climatological normals or runs the trained ML time-series model for your zone.
-            </p>
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <span className="text-2xl font-black font-mono text-water-600 block mb-2">02</span>
+              <h3 className="text-base font-bold text-slate-900">Analyze Rainfall</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                The engine accesses 30-year IMD climatological normals or runs the trained ML time-series model for your zone.
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <span className="text-2xl font-black font-mono text-indigo-600">03</span>
-            <h3 className="text-base font-bold text-slate-900">AI Evaluates Options</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              A 12-month iterative water balance tests multiple tank capacities (500 L to 50,000 L) against budget and overflow.
-            </p>
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <span className="text-2xl font-black font-mono text-indigo-600 block mb-2">03</span>
+              <h3 className="text-base font-bold text-slate-900">AI Evaluates Options</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                A 12-month iterative water balance tests multiple tank capacities (500 L to 50,000 L) against budget and overflow.
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <span className="text-2xl font-black font-mono text-amber-600">04</span>
-            <h3 className="text-base font-bold text-slate-900">Get Recommendation</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Receive a complete engineering report: recommended system (Storage, Pit, Trench, or Hybrid), cost, and dynamic rationale.
-            </p>
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <span className="text-2xl font-black font-mono text-amber-600 block mb-2">04</span>
+              <h3 className="text-base font-bold text-slate-900">Get Recommendation</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Receive a complete engineering report: recommended system (Storage, Pit, Trench, or Hybrid), cost, and dynamic rationale.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Feature Section (6 Clean Cards) */}
-      <section className="space-y-6">
+      <section id="features" className="space-y-6">
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <span className="text-xs uppercase font-mono font-bold text-forest-700 tracking-wider">
             System Capabilities
@@ -270,71 +278,83 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {/* Card 1 */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center">
-              <CloudRain className="h-5 w-5" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center mb-3">
+                <CloudRain className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Rainfall Analysis</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Analyzes historical monthly distribution and seasonal monsoon surges across 15 climate stations using IMD climatological normals.
+              </p>
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Rainfall Analysis</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Analyzes historical monthly distribution and seasonal monsoon surges across 15 climate stations using IMD climatological normals.
-            </p>
           </div>
 
           {/* Card 2 */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <div className="h-10 w-10 rounded-xl bg-forest-50 text-forest-700 border border-forest-100 flex items-center justify-center">
-              <Home className="h-5 w-5" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <div className="h-10 w-10 rounded-xl bg-forest-50 text-forest-700 border border-forest-100 flex items-center justify-center mb-3">
+                <Home className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Harvest Potential</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Calculates theoretical Gross Harvest and net Collectable Water using standard runoff coefficients for RCC, metal sheets, and clay tiles.
+              </p>
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Harvest Potential</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Calculates theoretical Gross Harvest and net Collectable Water using standard runoff coefficients for RCC, metal sheets, and clay tiles.
-            </p>
           </div>
 
           {/* Card 3 */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center">
-              <Sparkles className="h-5 w-5" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center mb-3">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">AI Recommendation</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Synthesizes site constraints (soil percolation, open area, demand, existing borewell) to determine whether storage, recharge, or hybrid is optimal.
+              </p>
             </div>
-            <h3 className="text-sm font-bold text-slate-900">AI Recommendation</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Synthesizes site constraints (soil percolation, open area, demand, existing borewell) to determine whether storage, recharge, or hybrid is optimal.
-            </p>
           </div>
 
           {/* Card 4 */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center">
-              <Sliders className="h-5 w-5" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center mb-3">
+                <Sliders className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Storage Planning</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Simulates candidate capacities from 500L to 50,000L with an objective function balancing shortage penalty, overflow, and budget constraints.
+              </p>
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Storage Planning</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Simulates candidate capacities from 500L to 50,000L with an objective function balancing shortage penalty, overflow, and budget constraints.
-            </p>
           </div>
 
           {/* Card 5 */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center">
-              <Waves className="h-5 w-5" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center mb-3">
+                <Waves className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Groundwater Recharge</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Evaluates infiltration suitability across sandy, loamy, silty, and clay soils to recommend sizing for recharge pits, trenches, or injection shafts.
+              </p>
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Groundwater Recharge</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Evaluates infiltration suitability across sandy, loamy, silty, and clay soils to recommend sizing for recharge pits, trenches, or injection shafts.
-            </p>
           </div>
 
           {/* Card 6 */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow space-y-3">
-            <div className="h-10 w-10 rounded-xl bg-rose-50 text-rose-700 border border-rose-100 flex items-center justify-center">
-              <DollarSign className="h-5 w-5" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-subtle hover:shadow-card transition-shadow flex flex-col justify-between h-full space-y-3 min-w-0">
+            <div>
+              <div className="h-10 w-10 rounded-xl bg-rose-50 text-rose-700 border border-rose-100 flex items-center justify-center mb-3">
+                <DollarSign className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Savings & Payback Estimation</h3>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Estimates capital expenditure (tank, filter, piping, excavation) and computes annual financial savings against municipal water tariffs.
+              </p>
             </div>
-            <h3 className="text-sm font-bold text-slate-900">Savings & Payback Estimation</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Estimates capital expenditure (tank, filter, piping, excavation) and computes annual financial savings against municipal water tariffs.
-            </p>
           </div>
         </div>
       </section>

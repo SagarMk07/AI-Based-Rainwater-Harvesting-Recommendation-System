@@ -1,6 +1,6 @@
 """Pydantic schemas for health and system status."""
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -28,7 +28,11 @@ class PipelineStatus(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    status: str
+    status: str = "ok"
+    api: str = "ok"
+    database_status: str = "ok"
+    ml_model: str = "ok"
+    weather_service: str = "ok"
     timestamp: str
     environment: EnvironmentInfo
     database: DatabaseStatus

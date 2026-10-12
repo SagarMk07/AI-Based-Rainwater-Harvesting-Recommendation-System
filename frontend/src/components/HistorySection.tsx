@@ -6,6 +6,7 @@ import {
   PlusCircle,
 } from 'lucide-react'
 import type { AnalysisResponse } from '../types/analysis'
+import { PageHeader } from './ui/PageHeader'
 
 interface Props {
   history: AnalysisResponse[]
@@ -25,69 +26,90 @@ export const HistorySection: React.FC<Props> = ({
   // Empty State (Section 23)
   if (history.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-slate-300 p-12 text-center bg-white space-y-4 shadow-subtle max-w-xl mx-auto my-8">
-        <div className="h-14 w-14 rounded-2xl bg-forest-50 text-forest-700 flex items-center justify-center mx-auto border border-forest-100">
-          <Clock className="h-7 w-7" />
+      <div className="space-y-8 animate-in fade-in duration-300">
+        <PageHeader
+          eyebrow={
+            <span className="text-xs uppercase font-mono font-bold text-forest-700 tracking-wider">
+              Saved Archives
+            </span>
+          }
+          title="Archived Property Analyses"
+          description="Past property evaluations, storage sizing simulations, and investment reports."
+          actions={
+            <button
+              type="button"
+              onClick={onStartNew}
+              className="h-10 px-5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-subtle inline-flex items-center space-x-1.5 transition-all"
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span>+ New Analysis</span>
+            </button>
+          }
+        />
+
+        <div className="rounded-3xl border border-dashed border-slate-300 p-8 sm:p-12 text-center bg-white space-y-4 shadow-subtle max-w-xl mx-auto my-6">
+          <div className="h-14 w-14 rounded-2xl bg-forest-50 text-forest-700 flex items-center justify-center mx-auto border border-forest-100">
+            <Clock className="h-7 w-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-900">No Analyses Yet</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+              Analyze your first property to evaluate rainfall catchment yield, compare candidate tanks, and see your customized AI recommendation.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onStartNew}
+            className="h-10 px-5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-sm transition-all inline-flex items-center space-x-2"
+          >
+            <PlusCircle className="h-4 w-4" />
+            <span>Start Analysis</span>
+          </button>
         </div>
-        <div className="space-y-1">
-          <h3 className="text-base font-bold text-slate-900">No Analyses Yet</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-            Analyze your first property to evaluate rainfall catchment yield, compare candidate tanks, and see your customized AI recommendation.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onStartNew}
-          className="px-5 py-2.5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-sm transition-all inline-flex items-center space-x-2"
-        >
-          <PlusCircle className="h-4 w-4" />
-          <span>Start Analysis</span>
-        </button>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-5 sm:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-        <div>
+    <div className="space-y-8 animate-in fade-in duration-300">
+      {/* Unified Page Header */}
+      <PageHeader
+        eyebrow={
           <div className="flex items-center space-x-2">
             <span className="text-xs uppercase font-mono font-bold text-forest-700 tracking-wider">
               Saved Archives
             </span>
-            <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">
               {history.length} Saved
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">
-            Archived Property Analyses
-          </h2>
-          <p className="text-xs text-slate-500">
-            Past property evaluations, storage sizing simulations, and investment reports.
-          </p>
-        </div>
+        }
+        title="Archived Property Analyses"
+        description="Past property evaluations, storage sizing simulations, and investment reports."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={onStartNew}
+              className="h-10 px-4 rounded-xl bg-forest-600 hover:bg-forest-700 text-white text-xs font-bold shadow-subtle inline-flex items-center space-x-1.5 transition-colors"
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span>+ New Analysis</span>
+            </button>
 
-        <div className="flex items-center space-x-2.5">
-          <button
-            type="button"
-            onClick={onStartNew}
-            className="px-3.5 py-2 rounded-xl bg-forest-600 hover:bg-forest-700 text-white text-xs font-bold shadow-subtle flex items-center space-x-1.5 transition-colors"
-          >
-            <PlusCircle className="h-3.5 w-3.5" />
-            <span>+ New Analysis</span>
-          </button>
+            <button
+              type="button"
+              onClick={onClear}
+              className="h-10 px-4 rounded-xl border border-slate-200 text-slate-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold transition-colors inline-flex items-center space-x-1.5"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Clear All</span>
+            </button>
+          </>
+        }
+      />
 
-          <button
-            type="button"
-            onClick={onClear}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold transition-colors flex items-center space-x-1"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            <span>Clear All</span>
-          </button>
-        </div>
-      </div>
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-5 sm:p-6 space-y-6">
 
       {/* Desktop Table View (hidden on mobile) */}
       <div className="hidden md:block overflow-x-auto">
@@ -220,6 +242,7 @@ export const HistorySection: React.FC<Props> = ({
             </div>
           </div>
         ))}
+      </div>
       </div>
     </div>
   )

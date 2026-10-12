@@ -32,11 +32,20 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
 
       {/* Progress track */}
       <div className="hidden sm:flex items-center justify-between relative">
-        {/* Connecting line */}
-        <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-0.5 bg-slate-200 z-0" />
+        {/* Connecting line - aligned precisely to the center of each step's circle */}
         <div
-          className="absolute top-1/2 left-0 -translate-y-1/2 h-0.5 bg-forest-600 transition-all duration-300 z-0"
-          style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+          className="absolute top-4 -translate-y-1/2 h-0.5 bg-slate-200 z-0"
+          style={{
+            left: `${100 / (2 * steps.length)}%`,
+            right: `${100 / (2 * steps.length)}%`,
+          }}
+        />
+        <div
+          className="absolute top-4 -translate-y-1/2 h-0.5 bg-forest-600 transition-all duration-300 z-0"
+          style={{
+            left: `${100 / (2 * steps.length)}%`,
+            width: `${((currentStep - 1) / (steps.length - 1)) * (100 - (100 / steps.length))}%`,
+          }}
         />
 
         {steps.map((step) => {
@@ -47,7 +56,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
           return (
             <div
               key={step.id}
-              className={`relative z-10 flex flex-col items-center group ${
+              className={`relative z-10 flex flex-col items-center group flex-1 ${
                 isClickable ? 'cursor-pointer' : 'cursor-default'
               }`}
               onClick={() => isClickable && onStepClick && onStepClick(step.id)}
@@ -64,11 +73,11 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
                 {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : step.id}
               </div>
               <span
-                className={`mt-1.5 text-[11px] font-medium tracking-tight transition-colors whitespace-nowrap ${
+                className={`mt-2 text-[11px] font-medium tracking-tight transition-colors text-center px-1 truncate max-w-[120px] ${
                   isCurrent
                     ? 'text-forest-800 font-bold'
                     : isCompleted
-                    ? 'text-slate-700'
+                    ? 'text-slate-700 font-semibold'
                     : 'text-slate-400'
                 }`}
               >
