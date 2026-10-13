@@ -8,7 +8,6 @@ import {
   EyeOff,
   AlertCircle,
   CheckCircle2,
-  Loader2,
   Droplets,
   Shield,
 } from 'lucide-react'
@@ -108,27 +107,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#252B26]/40 p-4 backdrop-blur-sm animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-title"
     >
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl neu-card bg-[#F4F4F0] border border-[#DEDFD8] shadow-neu-lg text-ink">
         {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[#DEDFD8] bg-[#EEEEEA] px-6 py-4">
           <div className="flex items-center space-x-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forest-700 text-white">
-              <Droplets className="h-4 w-4 text-water-200" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-forest-600 text-white shadow-sm">
+              <Droplets className="h-4 w-4 text-emerald-100" />
             </div>
             <div>
-              <h2 id="auth-modal-title" className="text-sm font-bold text-slate-900">
+              <h2 id="auth-modal-title" className="text-sm font-bold text-ink">
                 {mode === 'login' && 'Sign in to RainHarvest'}
                 {mode === 'signup' && 'Create your Account'}
                 {mode === 'forgot' && 'Reset your Password'}
                 {mode === 'session_expired' && 'Session Expired'}
                 {mode === 'unauthorized' && 'Authentication Required'}
               </h2>
-              <span className="text-[10px] text-slate-500 font-mono">
+              <span className="text-[10px] text-ink-muted font-mono">
                 {mode === 'session_expired' ? 'Security Re-authentication' : 'Hydrological Workspace'}
               </span>
             </div>
@@ -136,7 +135,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+            className="rounded-xl p-1.5 text-ink-muted hover:bg-[#EEEEEA] hover:text-ink transition-colors"
             aria-label="Close authentication modal"
           >
             <X className="h-5 w-5" />
@@ -144,11 +143,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-6">
+        <div className="p-6 space-y-4">
           {/* Guest Save Context Banner */}
           {pendingAnalysis && mode !== 'forgot' && (
-            <div className="mb-4 rounded-xl border border-water-200 bg-water-50/80 p-3 text-xs text-water-900 flex items-start space-x-2">
-              <Shield className="h-4 w-4 text-water-600 flex-shrink-0 mt-0.5" />
+            <div className="rounded-xl border border-sky-300/60 bg-sky-50/80 p-3 text-xs text-sky-900 flex items-start space-x-2">
+              <Shield className="h-4 w-4 text-sky-600 flex-shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold">Preserving current analysis:</span> Sign in to automatically bind your {pendingAnalysis.weather.city} calculations ({pendingAnalysis.recommendation.optimal_tank_capacity_litres.toLocaleString()} L system) to your profile!
               </div>
@@ -157,7 +156,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Session Expired / Unauthorized Alert */}
           {(mode === 'session_expired' || mode === 'unauthorized') && (
-            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 flex items-start space-x-2">
+            <div className="rounded-xl border border-amber-300/80 bg-amber-50 p-3 text-xs text-amber-900 flex items-start space-x-2">
               <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
                 {mode === 'session_expired'
@@ -169,14 +168,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Error & Success Alerts */}
           {errorMessage && (
-            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 flex items-start space-x-2 animate-in fade-in">
+            <div className="rounded-xl border border-rose-300/80 bg-rose-50 p-3 text-xs text-rose-800 flex items-start space-x-2 animate-in fade-in">
               <AlertCircle className="h-4 w-4 text-rose-600 flex-shrink-0 mt-0.5" />
               <span className="flex-1 font-medium">{errorMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 flex items-start space-x-2 animate-in fade-in">
+            <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 p-3 text-xs text-emerald-800 flex items-start space-x-2 animate-in fade-in">
               <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
               <span className="flex-1 font-medium">{successMessage}</span>
             </div>
@@ -186,37 +185,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div>
-                <label htmlFor="auth-full-name" className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="auth-full-name" className="block text-xs font-semibold text-ink mb-1">
                   Full Name / Organisation
                 </label>
                 <div className="relative">
-                  <User className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <User className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink-muted" />
                   <input
                     id="auth-full-name"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Sagar Patil"
-                    className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-forest-600 focus:outline-none focus:ring-1 focus:ring-forest-600"
+                    className="neu-input w-full py-2 pl-9 pr-3 text-xs"
+                    required
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label htmlFor="auth-email" className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="auth-email" className="block text-xs font-semibold text-ink mb-1">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink-muted" />
                 <input
                   id="auth-email"
                   type="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="engineer@company.com"
-                  className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-forest-600 focus:outline-none focus:ring-1 focus:ring-forest-600"
+                  placeholder="engineer@domain.com"
+                  className="neu-input w-full py-2 pl-9 pr-3 text-xs"
+                  required
                 />
               </div>
             </div>
@@ -224,34 +224,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {mode !== 'forgot' && (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="auth-password" className="block text-xs font-semibold text-slate-700">
+                  <label htmlFor="auth-password" className="block text-xs font-semibold text-ink">
                     Password
                   </label>
                   {mode === 'login' && (
                     <button
                       type="button"
-                      onClick={() => setMode('forgot')}
-                      className="text-[11px] text-forest-700 hover:text-forest-900 font-medium"
+                      onClick={() => {
+                        setMode('forgot')
+                        setErrorMessage(null)
+                        setSuccessMessage(null)
+                      }}
+                      className="text-[11px] font-semibold text-forest-700 hover:text-forest-900 transition-colors"
                     >
                       Forgot password?
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink-muted" />
                   <input
                     id="auth-password"
                     type={showPassword ? 'text' : 'password'}
-                    required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-10 text-xs text-slate-900 placeholder:text-slate-400 focus:border-forest-600 focus:outline-none focus:ring-1 focus:ring-forest-600"
+                    className="neu-input w-full py-2 pl-9 pr-10 text-xs"
+                    required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-2.5 text-ink-muted hover:text-ink"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -263,51 +267,71 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-forest-700 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-forest-800 disabled:opacity-60 transition-all flex items-center justify-center space-x-2"
+              className="neu-btn-primary w-full h-10 rounded-xl font-bold text-xs shadow-sm hover:shadow transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
             >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              <span>
-                {mode === 'login' && (loading ? 'Signing in...' : 'Sign In')}
-                {mode === 'signup' && (loading ? 'Creating account...' : 'Create Free Account')}
-                {mode === 'forgot' && (loading ? 'Sending link...' : 'Send Reset Link')}
-                {(mode === 'session_expired' || mode === 'unauthorized') && (loading ? 'Authenticating...' : 'Sign In')}
-              </span>
+              {loading ? (
+                <span>Please wait...</span>
+              ) : (
+                <span>
+                  {mode === 'login' && 'Sign In'}
+                  {mode === 'signup' && 'Create Account'}
+                  {mode === 'forgot' && 'Send Password Reset Link'}
+                  {mode === 'session_expired' && 'Re-authenticate Session'}
+                  {mode === 'unauthorized' && 'Sign In to Proceed'}
+                </span>
+              )}
             </button>
           </form>
 
-          {/* Mode Switcher Footer */}
-          <div className="mt-5 border-t border-slate-100 pt-4 text-center text-xs text-slate-500">
-            {mode === 'login' || mode === 'session_expired' || mode === 'unauthorized' ? (
+          {/* Mode Switchers */}
+          <div className="pt-3 border-t border-[#DEDFD8] text-center text-xs text-ink-muted space-y-2">
+            {mode === 'login' && (
               <p>
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => setMode('signup')}
-                  className="font-bold text-forest-700 hover:underline"
+                  onClick={() => {
+                    setMode('signup')
+                    setErrorMessage(null)
+                    setSuccessMessage(null)
+                  }}
+                  className="font-bold text-forest-700 hover:text-forest-900 underline"
                 >
-                  Create one now
+                  Create free account
                 </button>
               </p>
-            ) : mode === 'signup' ? (
+            )}
+
+            {mode === 'signup' && (
               <p>
-                Already registered?{' '}
+                Already have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => setMode('login')}
-                  className="font-bold text-forest-700 hover:underline"
+                  onClick={() => {
+                    setMode('login')
+                    setErrorMessage(null)
+                    setSuccessMessage(null)
+                  }}
+                  className="font-bold text-forest-700 hover:text-forest-900 underline"
                 >
                   Sign in
                 </button>
               </p>
-            ) : (
+            )}
+
+            {mode === 'forgot' && (
               <p>
-                Remembered your password?{' '}
+                Remembered your credentials?{' '}
                 <button
                   type="button"
-                  onClick={() => setMode('login')}
-                  className="font-bold text-forest-700 hover:underline"
+                  onClick={() => {
+                    setMode('login')
+                    setErrorMessage(null)
+                    setSuccessMessage(null)
+                  }}
+                  className="font-bold text-forest-700 hover:text-forest-900 underline"
                 >
-                  Back to Sign In
+                  Back to login
                 </button>
               </p>
             )}
@@ -317,3 +341,4 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     </div>
   )
 }
+export default AuthModal

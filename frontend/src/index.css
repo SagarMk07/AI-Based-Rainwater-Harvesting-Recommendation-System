@@ -3,6 +3,21 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --canvas: #E9E9E4;
+    --surface: #F4F4F0;
+    --surface-alt: #EEEEEA;
+    --surface-inset: #E3E4DE;
+    --ink-primary: #252B26;
+    --ink-secondary: #687068;
+    --ink-muted: #8C948C;
+    --border-neutral: #DEDFD8;
+    --primary-green: #168447;
+    --deep-green: #106638;
+    --shadow-light: rgba(255, 255, 255, 0.95);
+    --shadow-dark: rgba(80, 82, 78, 0.10);
+  }
+
   *, *::before, *::after {
     box-sizing: border-box;
   }
@@ -11,23 +26,30 @@
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    background-color: #E9E9E4;
+    color: #252B26;
   }
   
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    background-color: #E9E9E4;
+    color: #252B26;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     min-height: 100vh;
     width: 100%;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply text-slate-900 tracking-tight font-bold;
+    color: #252B26;
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
 }
 
 @layer components {
-  /* Global Content Container ensuring strict 1440px max grid and responsive gutters */
+  /* Global Content Container ensuring strict 1280px max grid and responsive gutters */
   .content-container {
     width: 100%;
     max-width: 80rem; /* 1280px / 7xl */
@@ -35,31 +57,162 @@
     padding-inline: clamp(1rem, 2.5vw, 2rem);
   }
 
-  /* Consistent interactive form controls */
-  .form-control-base {
-    @apply h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs sm:text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-forest-600 focus:outline-none focus:ring-2 focus:ring-forest-500/20;
+  /* Tactile Raised Neumorphic Surface Card */
+  .neu-card, .neu-raised {
+    background-color: #F4F4F0;
+    border: 1px solid #DEDFD8;
+    box-shadow: 5px 5px 12px rgba(80, 82, 78, 0.10), -5px -5px 12px rgba(255, 255, 255, 0.95);
+    border-radius: 1rem;
+  }
+
+  /* Smaller Tactile Raised Card */
+  .neu-card-sm, .neu-raised-sm {
+    background-color: #F4F4F0;
+    border: 1px solid #DEDFD8;
+    box-shadow: 3px 3px 7px rgba(80, 82, 78, 0.08), -3px -3px 7px rgba(255, 255, 255, 0.92);
+    border-radius: 0.75rem;
+  }
+
+  /* Interactive Hover Elevation */
+  .neu-card-interactive {
+    background-color: #F4F4F0;
+    border: 1px solid #DEDFD8;
+    box-shadow: 4px 4px 9px rgba(80, 82, 78, 0.09), -4px -4px 9px rgba(255, 255, 255, 0.95);
+    border-radius: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .neu-card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 15px rgba(80, 82, 78, 0.13), -6px -6px 15px rgba(255, 255, 255, 0.98);
+  }
+
+  /* Soft Inset Neumorphic Surface */
+  .neu-inset {
+    background-color: #E3E4DE;
+    border: 1px solid #DEDFD8;
+    box-shadow: inset 2.5px 2.5px 5px rgba(80, 82, 78, 0.10), inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.90);
+    border-radius: 0.75rem;
+  }
+
+  /* Form Input Controls with Tactile Inset Depressed Surface */
+  .form-control-base, .neu-input {
+    height: 2.75rem;
+    width: 100%;
+    border-radius: 0.75rem;
+    background-color: #E3E4DE;
+    border: 1px solid #DEDFD8;
+    box-shadow: inset 2px 2px 4px rgba(80, 82, 78, 0.09), inset -2px -2px 4px rgba(255, 255, 255, 0.90);
+    padding-inline: 0.875rem;
+    font-size: 0.875rem;
+    color: #252B26;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .form-control-base::placeholder, .neu-input::placeholder {
+    color: #8C948C;
+  }
+  .form-control-base:focus, .neu-input:focus {
+    outline: none;
+    border-color: #168447;
+    box-shadow: inset 2px 2px 4px rgba(22, 132, 71, 0.15), inset -2px -2px 4px rgba(255, 255, 255, 0.95), 0 0 0 2px rgba(22, 132, 71, 0.20);
+  }
+
+  /* Tactile Primary Green Action Button */
+  .neu-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #168447;
+    color: #FFFFFF;
+    font-weight: 700;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 3px 3px 8px rgba(22, 132, 71, 0.28), -2px -2px 6px rgba(255, 255, 255, 0.7);
+    transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+  }
+  .neu-btn-primary:hover:not(:disabled) {
+    background-color: #106638;
+    box-shadow: 4px 4px 11px rgba(16, 102, 56, 0.35), -2px -2px 6px rgba(255, 255, 255, 0.7);
+  }
+  .neu-btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+    box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  .neu-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* Tactile Secondary Button (Neutral Secondary Surface) */
+  .neu-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #EEEEEA;
+    color: #252B26;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    border: 1px solid #DEDFD8;
+    box-shadow: 3px 3px 7px rgba(80, 82, 78, 0.08), -3px -3px 7px rgba(255, 255, 255, 0.92);
+    transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+  }
+  .neu-btn-secondary:hover:not(:disabled) {
+    background-color: #F4F4F0;
+    box-shadow: 4px 4px 9px rgba(80, 82, 78, 0.11), -4px -4px 9px rgba(255, 255, 255, 0.96);
+  }
+  .neu-btn-secondary:active:not(:disabled) {
+    box-shadow: inset 2px 2px 4px rgba(80, 82, 78, 0.10), inset -2px -2px 4px rgba(255, 255, 255, 0.85);
+  }
+  .neu-btn-secondary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* Tactile Selected Choice Card / Radio Button */
+  .neu-selectable {
+    background-color: #F4F4F0;
+    border: 1.5px solid #DEDFD8;
+    box-shadow: 3px 3px 7px rgba(80, 82, 78, 0.08), -3px -3px 7px rgba(255, 255, 255, 0.92);
+    border-radius: 0.875rem;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+  .neu-selectable:hover {
+    box-shadow: 4px 4px 9px rgba(80, 82, 78, 0.11), -4px -4px 9px rgba(255, 255, 255, 0.96);
+  }
+  .neu-selectable.selected, .neu-selectable[data-selected="true"] {
+    background-color: #EEEEEA;
+    border-color: #168447;
+    box-shadow: inset 2px 2px 4px rgba(80, 82, 78, 0.09), inset -2px -2px 4px rgba(255, 255, 255, 0.90);
   }
 
   /* Equal height card grid items */
   .grid-card-equal {
-    @apply h-full flex flex-col justify-between min-w-0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
   }
 }
 
 /* Custom minimal scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #E3E4DE;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #C2C5BE;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #A9ACA2;
 }
 
 /* Print Styles */
@@ -71,8 +224,9 @@
     background: white !important;
     color: black !important;
   }
-  .card, div[class*="rounded-"] {
+  .neu-card, .neu-raised, .neu-inset, div[class*="rounded-"] {
     box-shadow: none !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid #d1d5db !important;
+    background: white !important;
   }
 }

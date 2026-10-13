@@ -10,7 +10,7 @@ export const PublicLayout: React.FC = () => {
   const [showMLModal, setShowMLModal] = useState(false)
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 font-sans antialiased selection:bg-forest-100 selection:text-forest-900">
+    <div className="flex min-h-screen flex-col bg-[#E9E9E4] text-[#252B26] font-sans antialiased selection:bg-forest-100 selection:text-forest-900">
       <PublicNavbar />
 
       <main className="flex-1">

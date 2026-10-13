@@ -4,12 +4,34 @@ import type {
   AnalysisResponse,
   CityRainfallProfile,
   GeocodeResult,
+  PaginatedHistoryResponse,
 } from '../types/analysis'
 
 export const analysisService = {
   async runAnalysis(formData: AnalysisFormData): Promise<AnalysisResponse> {
     const response = await apiClient.post<AnalysisResponse>('/analyze', formData)
     return response.data
+  },
+
+  async getRecentAnalyses(limit = 5): Promise<AnalysisResponse[]> {
+    const response = await apiClient.get<PaginatedHistoryResponse>(`/analysis/history?limit=${limit}`)
+    return response.data.analyses || []
+  },
+
+  async getHistory(page = 1, pageSize = 10): Promise<PaginatedHistoryResponse> {
+    const response = await apiClient.get<PaginatedHistoryResponse>(
+      `/analysis/history?page=${page}&page_size=${pageSize}`
+    )
+    return response.data
+  },
+
+  async getAnalysisById(analysisId: string): Promise<AnalysisResponse> {
+    const response = await apiClient.get<AnalysisResponse>(`/analysis/${analysisId}`)
+    return response.data
+  },
+
+  async deleteAnalysis(analysisId: string): Promise<void> {
+    await apiClient.delete(`/analysis/${analysisId}`)
   },
 
   async getCityWeather(
@@ -50,3 +72,4 @@ export const analysisService = {
     return response.data
   },
 }
+

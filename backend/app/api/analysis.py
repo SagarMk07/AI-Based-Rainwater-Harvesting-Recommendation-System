@@ -73,19 +73,12 @@ from backend.app.auth.security import AuthUser, get_current_user, get_optional_u
 from backend.app.utils.logger import logger
 from fastapi import Depends
 
+from backend.app.database.analysis_repository import analysis_repo, AnalysisRecord
+
 router = APIRouter(tags=["Analysis & Engineering"])
 
-
-class AnalysisRecord:
-    """In-memory analysis container tracking data, owner ID, and guest flag."""
-    def __init__(self, analysis: AnalysisResponse, user_id: Optional[str] = None, is_guest: bool = False):
-        self.analysis = analysis
-        self.user_id = user_id
-        self.is_guest = is_guest
-
-
-# In-memory session store for analyses indexed by request_id
-_IN_MEMORY_ANALYSES: Dict[str, AnalysisRecord] = {}
+# In-memory session store backed by durable repository
+_IN_MEMORY_ANALYSES: Dict[str, AnalysisRecord] = analysis_repo._cache
 
 
 def _resolve_rainfall(payload: AnalysisRequest, weather_profile: CityRainfallProfile) -> tuple[float, List[float]]:
@@ -212,37 +205,13 @@ async def run_full_analysis(
             sizing_tiers=opt_summary.sizing_tiers,
         )
 
-        # Store in session memory container
-        _IN_MEMORY_ANALYSES[analysis_res.request_id] = AnalysisRecord(
+        # Persist completed analysis to durable multi-tier storage
+        analysis_repo.save(
             analysis=analysis_res,
             user_id=user_id,
             is_guest=is_guest,
+            input_payload=payload,
         )
-
-        # Optional Supabase persistence
-        sb_client = get_supabase_client()
-        if sb_client is not None:
-            try:
-                sb_client.table("analyses").insert({
-                    "id": str(uuid.uuid4()),
-                    "user_id": user_id,
-                    "city": payload.city,
-                    "annual_rainfall_mm": annual_rain,
-                    "gross_harvest_litres": rec.annual_gross_harvest_litres,
-                    "collectable_litres": rec.annual_collectable_litres,
-                    "usable_litres": rec.annual_usable_litres,
-                    "demand_met_percentage": rec.water_savings_percentage,
-                    "optimal_tank_capacity_litres": rec.optimal_tank_capacity_litres,
-                    "recommended_system": rec.system_type.value,
-                    "total_estimated_cost_inr": rec.total_estimated_cost_inr,
-                    "payback_years": rec.payback_years or 0.0,
-                    "water_balance_breakdown": sim_result.model_dump(),
-                    "explainability_rationale": explainability.model_dump(),
-                    "is_offline_guest": is_guest,
-                    "model_version": "2.0.0",
-                }).execute()
-            except Exception as sb_err:
-                logger.warning(f"Could not persist analysis to Supabase: {sb_err}")
 
         return analysis_res
 
@@ -597,25 +566,26 @@ async def get_model_features():
 # =====================================================================
 @router.get("/analysis/history")
 async def get_analysis_history(
+    limit: Optional[int] = Query(default=None, ge=1, le=100, description="Max records to return (e.g. 5 for dashboard)"),
+    page: Optional[int] = Query(default=None, ge=1, description="Page number (1-indexed)"),
+    page_size: Optional[int] = Query(default=None, ge=1, le=100, description="Items per page"),
     current_user: Optional[AuthUser] = Depends(get_optional_user),
 ):
-    """Retrieve stored analyses history isolated strictly by user ownership.
+    """Retrieve stored analyses history isolated strictly by user ownership with server-side sorting and pagination.
     
     - Authenticated users: returns ONLY analyses belonging to this user.
     - Guests: returns ONLY anonymous/guest analyses from the current session.
     Never exposes authenticated users' private records to logged-out guests or other users.
     """
-    if current_user:
-        items = [
-            record.analysis for record in _IN_MEMORY_ANALYSES.values()
-            if record.user_id == current_user.id
-        ]
-    else:
-        items = [
-            record.analysis for record in _IN_MEMORY_ANALYSES.values()
-            if record.is_guest and record.user_id is None
-        ]
-    return {"analyses": items[::-1], "count": len(items)}
+    user_id = current_user.id if current_user else None
+    is_guest = current_user is None
+    return analysis_repo.list_analyses(
+        user_id=user_id,
+        is_guest=is_guest,
+        limit=limit,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/analysis/{analysis_id}")
@@ -630,7 +600,7 @@ async def get_analysis_by_id(
     - Different user request -> 403 Forbidden
     - Owner request -> 200 OK
     """
-    record = _IN_MEMORY_ANALYSES.get(analysis_id)
+    record = analysis_repo.get_by_id(analysis_id)
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -659,7 +629,7 @@ async def delete_analysis_by_id(
     current_user: Optional[AuthUser] = Depends(get_optional_user),
 ):
     """Delete a stored analysis with ownership verification."""
-    record = _IN_MEMORY_ANALYSES.get(analysis_id)
+    record = analysis_repo.get_by_id(analysis_id)
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -679,15 +649,7 @@ async def delete_analysis_by_id(
                 detail={"code": "FORBIDDEN", "message": "You are not authorized to delete another user's analysis."}
             )
 
-    del _IN_MEMORY_ANALYSES[analysis_id]
-
-    # Delete from Supabase if connected
-    sb_client = get_supabase_client()
-    if sb_client is not None and record.user_id:
-        try:
-            sb_client.table("analyses").delete().eq("id", analysis_id).eq("user_id", record.user_id).execute()
-        except Exception as e:
-            logger.warning(f"Could not delete analysis from Supabase: {e}")
+    analysis_repo.delete(analysis_id, user_id=current_user.id if current_user else None)
 
     return {"status": "deleted", "request_id": analysis_id}
 
@@ -698,7 +660,7 @@ async def claim_analysis(
     current_user: AuthUser = Depends(get_current_user),
 ):
     """Claim an anonymous guest analysis to the logged-in user's account."""
-    record = _IN_MEMORY_ANALYSES.get(analysis_id)
+    record = analysis_repo.get_by_id(analysis_id)
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -711,12 +673,15 @@ async def claim_analysis(
             detail={"code": "FORBIDDEN", "message": "This analysis already belongs to another user account."}
         )
 
-    record.user_id = current_user.id
-    record.is_guest = False
-    record.analysis.user_id = current_user.id
-    record.analysis.is_guest = False
+    claimed = analysis_repo.claim(analysis_id, current_user.id)
+    if not claimed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "CLAIM_FAILED", "message": "Could not claim analysis."}
+        )
 
     return {
+        "success": True,
         "status": "claimed",
         "request_id": analysis_id,
         "user_id": current_user.id,
@@ -724,17 +689,13 @@ async def claim_analysis(
     }
 
 
+
 @router.delete("/user/account")
 async def delete_user_account_and_data(
     current_user: AuthUser = Depends(get_current_user),
 ):
     """Permanently delete authenticated user's account and all associated analyses."""
-    keys_to_delete = [
-        k for k, rec in _IN_MEMORY_ANALYSES.items()
-        if rec.user_id == current_user.id
-    ]
-    for k in keys_to_delete:
-        del _IN_MEMORY_ANALYSES[k]
+    deleted_count = analysis_repo.clear_for_user(current_user.id)
 
     sb_client = get_supabase_client()
     if sb_client is not None:
@@ -748,6 +709,6 @@ async def delete_user_account_and_data(
     return {
         "status": "deleted",
         "user_id": current_user.id,
-        "deleted_analyses_count": len(keys_to_delete),
+        "deleted_analyses_count": deleted_count,
         "message": f"User account {current_user.id} and all associated analyses have been permanently deleted.",
     }

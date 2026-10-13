@@ -95,19 +95,19 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({
     }).addTo(map)
 
     marker.bindPopup(`
-      <div style="font-family: inherit; font-size: 12px; line-height: 1.4;">
-        <strong style="color: #0f172a; font-size: 13px;">${city}${state ? `, ${state}` : ''}</strong><br/>
-        <span style="color: #0284c7;">🌧 Annual Rainfall: ${annualRainfallMm} mm</span><br/>
-        <span style="color: #16a34a;">🏠 Catchment: ${roofAreaSqm} m²</span><br/>
-        <span style="color: #4f46e5; font-weight: 600;">⚙ ${recommendedSystem}</span><br/>
-        <span style="color: #64748b; font-size: 10px;">${currentCoords[0].toFixed(4)}°N, ${currentCoords[1].toFixed(4)}°E</span>
+      <div style="font-family: inherit; font-size: 12px; line-height: 1.4; color: #252B26;">
+        <strong style="color: #106638; font-size: 13px;">${city}${state ? `, ${state}` : ''}</strong><br/>
+        <span style="color: #0369a1;">🌧 Annual Rainfall: ${annualRainfallMm} mm</span><br/>
+        <span style="color: #168447;">🏠 Catchment: ${roofAreaSqm} m²</span><br/>
+        <span style="color: #106638; font-weight: 700;">⚙ ${recommendedSystem}</span><br/>
+        <span style="color: #687068; font-size: 10px;">${currentCoords[0].toFixed(4)}°N, ${currentCoords[1].toFixed(4)}°E</span>
       </div>
     `).openPopup()
 
     // Add rainfall zone circle
     const circle = L.circle(currentCoords, {
-      color: '#0284c7',
-      fillColor: '#38bdf8',
+      color: '#168447',
+      fillColor: '#168447',
       fillOpacity: 0.12,
       radius: 3500,
     }).addTo(map)
@@ -148,16 +148,23 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({
   }, [currentCoords[0], currentCoords[1], city, state, annualRainfallMm, roofAreaSqm, recommendedSystem, isInteractive])
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-        <div className="flex items-center space-x-2">
-          <MapPin className="h-4 w-4 text-emerald-600" />
-          <h3 className="text-sm font-bold text-slate-900">
-            Property & Rooftop Geographic Catchment Pin
-          </h3>
+    <div className="neu-card p-5 sm:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#DEDFD8] pb-3">
+        <div className="flex items-center space-x-2.5">
+          <div className="h-8 w-8 rounded-lg bg-surface border border-white/80 shadow-neu-sm flex items-center justify-center text-forest-700">
+            <MapPin className="h-4 w-4" />
+          </div>
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-forest-700 font-bold block">
+              Geospatial Intelligence
+            </span>
+            <h3 className="text-sm font-bold text-ink">
+              Property & Rooftop Geographic Catchment Pin
+            </h3>
+          </div>
         </div>
-        <div className="flex items-center space-x-2 text-[11px] font-mono text-slate-500">
-          <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-bold">
+        <div className="flex items-center space-x-2 text-xs font-mono text-ink-muted">
+          <span className="bg-surface border border-white/80 shadow-neu-sm px-2.5 py-1 rounded-lg text-ink font-bold">
             {currentCoords[0].toFixed(4)}°N, {currentCoords[1].toFixed(4)}°E
           </span>
           <span className="hidden sm:inline">OpenStreetMap · Draggable Marker</span>
@@ -166,17 +173,18 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({
 
       <div
         ref={mapContainerRef}
-        className="w-full h-64 sm:h-72 rounded-xl border border-slate-200 overflow-hidden z-0"
+        className="w-full h-64 sm:h-72 rounded-2xl border border-white/80 shadow-neu-inset overflow-hidden z-0"
       />
 
       {isInteractive && (
-        <div className="flex items-center space-x-2 text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-          <Info className="h-3.5 w-3.5 text-forest-600 flex-shrink-0" />
+        <div className="flex items-center space-x-2.5 text-xs text-ink-secondary neu-inset p-3 rounded-xl">
+          <Info className="h-4 w-4 text-forest-700 flex-shrink-0" />
           <span>
-            <strong>Interactive Verification:</strong> Drag the marker or click anywhere on the map to pinpoint your exact building location and trigger localized precipitation extraction.
+            <strong className="text-ink">Interactive Verification:</strong> Drag the marker or click anywhere on the map to pinpoint your exact building location and trigger localized precipitation extraction.
           </span>
         </div>
       )}
     </div>
   )
 }
+export default PropertyMap

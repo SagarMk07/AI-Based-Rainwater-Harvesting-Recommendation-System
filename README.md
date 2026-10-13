@@ -235,29 +235,97 @@ Key configuration variables in `.env`:
 
 ### Running Locally
 
-#### 1. Backend Setup:
+#### 1. Backend Setup & Run
+
+##### Option A: From the Project Root (Recommended)
 ```powershell
-# Create and activate Python virtual environment
-py -3.11 -m venv .venv
-.\.venv\Scripts\activate
+# 1. Create a Python 3.11 virtual environment (if not already created)
+python -m venv .venv
 
-# Install dependencies
-pip install -r backend\requirements.txt
+# 2. Activate the virtual environment
+# Windows PowerShell:
+.\.venv\Scripts\Activate.ps1
+# (Note: If your venv was created inside backend, activate using: .\backend\.venv\Scripts\Activate.ps1)
+# (If PowerShell blocks script execution, run: Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned)
+# Windows CMD:
+.\.venv\Scripts\activate.bat
+# Linux / macOS:
+source .venv/bin/activate
 
-# Start backend API server
+# 3. Upgrade pip and install all backend requirements
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+
+# 4. Start the FastAPI development server with hot reload
 python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-Interactive API documentation will be available at:
-- Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- OpenAPI Specification: [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
 
-#### 2. Frontend Setup:
+##### Option B: From the `backend` Subdirectory
+```powershell
+# 1. Navigate into backend directory
+cd backend
+
+# 2. Create and activate virtual environment
+python -m venv .venv
+# Windows PowerShell:
+.\.venv\Scripts\Activate.ps1
+# Windows CMD:
+.\.venv\Scripts\activate.bat
+# Linux / macOS:
+source .venv/bin/activate
+
+# 3. Install requirements (use requirements.txt, NOT backend/requirements.txt)
+python -m pip install -r requirements.txt
+
+# 4. Set PYTHONPATH to root so backend package imports resolve, then start uvicorn
+# Windows PowerShell:
+$env:PYTHONPATH = ".."
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Windows CMD:
+set PYTHONPATH=.. && python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Linux / macOS:
+PYTHONPATH=.. python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+##### Verification Endpoints:
+Once started, verify the backend is running at:
+- **Interactive Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **API Health Check**: [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
+- **OpenAPI Schema**: [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
+
+##### Common Backend Troubleshooting:
+- **`ModuleNotFoundError: No module named 'backend'`**:
+  The application modules import using package paths like `backend.app...`. Run uvicorn from the **project root**:
+  ```powershell
+  python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+  ```
+  If running from inside the `backend/` directory, set `$env:PYTHONPATH = ".."` in PowerShell beforehand.
+- **`ERROR: Could not open requirements file: [Errno 2] No such file or directory`**:
+  - If inside the **project root**: use `pip install -r requirements.txt` (or `pip install -r backend/requirements.txt`).
+  - If inside the **`backend` folder**: use `pip install -r requirements.txt` (do not prepend `backend/`).
+- **Port Conflict (Error: [WinError 10048] address already in use)**:
+  If port 8000 is occupied by an existing process, identify and terminate it:
+  ```powershell
+  netstat -ano | findstr :8000
+  taskkill /PID <PID> /F
+  ```
+  Alternatively, bind to another port (e.g. `--port 8001`), and update `frontend/vite.config.ts` proxy target accordingly.
+- **PowerShell Script Execution Policy Error**:
+  If `Activate.ps1` produces an execution policy error, enable local scripts for the current terminal session:
+  ```powershell
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+  ```
+
+#### 2. Frontend Setup & Run:
 ```powershell
 cd frontend
 npm ci
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Open [http://localhost:5173](http://localhost:5173) in your browser. The Vite development server automatically proxies all `/api` requests to `http://127.0.0.1:8000`.
+
 
 ---
 

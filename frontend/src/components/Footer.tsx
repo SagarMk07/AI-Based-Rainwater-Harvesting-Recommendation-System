@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Droplets, ShieldCheck, Cpu, ArrowUpRight } from 'lucide-react'
+import { Droplets, ShieldCheck, Cpu } from 'lucide-react'
 import type { NavTab } from './Navbar'
 import { useAuth } from '../context/AuthContext'
 
@@ -13,34 +13,34 @@ export const Footer: React.FC<FooterProps> = ({ onTabChange, onOpenTelemetry }) 
   const { user } = useAuth()
 
   return (
-    <footer className="w-full border-t border-slate-200/90 bg-white py-10 transition-colors">
+    <footer className="w-full border-t border-[#DEDFD8] bg-[#EEEEEA] py-10 shadow-[0_-3px_10px_rgba(80,82,78,0.04)] transition-colors">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           {/* Brand Info */}
           <div className="md:col-span-6 space-y-3">
             <div className="flex items-center space-x-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forest-700 text-white shadow-sm">
-                <Droplets className="h-4 w-4 text-water-200" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-forest-600 text-white shadow-[2px_2px_6px_rgba(22,132,71,0.25),-2px_-2px_6px_rgba(255,255,255,0.7)]">
+                <Droplets className="h-4 w-4 text-emerald-100" />
               </div>
-              <span className="text-base font-extrabold text-slate-900 tracking-tight">
-                RainHarvest <span className="text-forest-700">AI</span>
+              <span className="text-base font-extrabold text-[#252B26] tracking-tight">
+                RainHarvest <span className="text-forest-600">AI</span>
               </span>
             </div>
-            <p className="text-xs text-slate-500 max-w-md leading-relaxed">
+            <p className="text-xs text-[#687068] max-w-md leading-relaxed">
               AI-Based Rainwater Harvesting Intelligence & Optimization System.
               Engineered with deterministic civil calculations (IS 15797:2008 & CPWD), 12-month iterative
               water-balance continuity simulations, and chronological machine learning forecasting.
             </p>
-            <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-mono text-slate-500">
-              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-mono text-[#687068]">
+              <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-[#E3E4DE] text-[#252B26] border border-[#DEDFD8] shadow-neu-inset-sm">
                 <ShieldCheck className="h-3 w-3 text-forest-600" />
                 <span>IS 15797:2008 Compliant</span>
               </span>
-              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+              <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-[#E3E4DE] text-[#252B26] border border-[#DEDFD8] shadow-neu-inset-sm">
                 <Cpu className="h-3 w-3 text-water-600" />
                 <span>Audited Pure NumPy ML</span>
               </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">
+              <span className="px-2.5 py-1 rounded-lg bg-[#EEEEEA] text-[#252B26] border border-[#DEDFD8] font-semibold shadow-neu-sm">
                 Engineering-Grade
               </span>
             </div>
@@ -48,17 +48,17 @@ export const Footer: React.FC<FooterProps> = ({ onTabChange, onOpenTelemetry }) 
 
           {/* Navigation Links */}
           <div className="md:col-span-3 space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#252B26] font-mono">
               Platform Modules
             </h4>
-            <ul className="space-y-1.5 text-xs text-slate-600">
+            <ul className="space-y-1.5 text-xs text-[#687068]">
               <li>
                 <Link
                   to={user ? '/dashboard' : '/'}
                   onClick={() => onTabChange?.('dashboard')}
                   className="hover:text-forest-700 transition-colors"
                 >
-                  {user ? 'Dashboard Overview' : 'Platform Homepage'}
+                  {user ? 'Hydrological Dashboard' : 'Public Overview'}
                 </Link>
               </li>
               <li>
@@ -67,64 +67,70 @@ export const Footer: React.FC<FooterProps> = ({ onTabChange, onOpenTelemetry }) 
                   onClick={() => onTabChange?.('wizard')}
                   className="hover:text-forest-700 transition-colors"
                 >
-                  5-Step Property Wizard
+                  5-Step Property Analysis
                 </Link>
               </li>
-              <li>
-                <Link
-                  to={user ? '/history' : '/login'}
-                  onClick={() => onTabChange?.('history')}
-                  className="hover:text-forest-700 transition-colors"
-                >
-                  Saved Analyses History
-                </Link>
-              </li>
+              {user && (
+                <li>
+                  <Link
+                    to="/history"
+                    onClick={() => onTabChange?.('history')}
+                    className="hover:text-forest-700 transition-colors"
+                  >
+                    Historical Assessments
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   to="/about"
                   onClick={() => onTabChange?.('about')}
                   className="hover:text-forest-700 transition-colors"
                 >
-                  Hydrological Methodology & Principles
+                  Engineering Methodology
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Technical Telemetry & Standards */}
+          {/* Technical Standards & Telemetry */}
           <div className="md:col-span-3 space-y-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
-              Scientific Assurance
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#252B26] font-mono">
+              Transparency
             </h4>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Strict architectural separation: Machine learning is reserved for stochastic time-series rainfall
-              prediction. All hydraulic yields, demand met, and tank balances use deterministic physics.
+            <p className="text-xs text-[#687068] leading-relaxed">
+              Models evaluate 3,600 monthly samples across 15 climate zones without data leakage.
             </p>
             {onOpenTelemetry && (
               <button
                 type="button"
                 onClick={onOpenTelemetry}
-                className="inline-flex items-center space-x-1.5 text-xs font-semibold text-forest-700 hover:text-forest-800 pt-1"
+                className="neu-btn-secondary px-3 py-1.5 text-xs font-semibold space-x-1.5 text-forest-700"
               >
-                <span>Inspect ML Model Telemetry</span>
-                <ArrowUpRight className="h-3.5 w-3.5" />
+                <Cpu className="h-3.5 w-3.5" />
+                <span>Inspect ML Verification</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
-          <p>© {new Date().getFullYear()} RainHarvest AI. Senior Environmental & AIML Engineering System.</p>
-          <div className="flex items-center space-x-4 text-[11px] font-mono">
-            <span>FastAPI v0.115</span>
-            <span>•</span>
-            <span>React 19 + TypeScript</span>
-            <span>•</span>
-            <span>Tailwind CSS</span>
+        <div className="pt-6 border-t border-[#DEDFD8] flex flex-col sm:flex-row items-center justify-between text-xs text-[#8C948C] gap-2">
+          <span>&copy; {new Date().getFullYear()} RainHarvest AI. All rights reserved.</span>
+          <div className="flex items-center space-x-4">
+            <Link to="/about" className="hover:text-[#252B26] transition-colors">
+              Documentation
+            </Link>
+            <Link to="/about" className="hover:text-[#252B26] transition-colors">
+              Civil Standards
+            </Link>
+            <Link to="/about" className="hover:text-[#252B26] transition-colors">
+              Privacy Notice
+            </Link>
           </div>
         </div>
       </div>
     </footer>
   )
 }
+
+export default Footer

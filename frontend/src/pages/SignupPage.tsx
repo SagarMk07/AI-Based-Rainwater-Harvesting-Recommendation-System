@@ -52,25 +52,25 @@ export const SignupPage: React.FC = () => {
     <div className="flex min-h-[calc(100vh-14rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <Link to="/" className="inline-flex items-center space-x-2 text-slate-900 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-forest-700 text-white shadow-sm group-hover:bg-forest-800 transition-colors">
-              <Droplets className="h-5 w-5 text-water-200" />
+          <Link to="/" className="inline-flex items-center space-x-2.5 text-ink group">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-forest-700 text-white shadow-neu-sm group-hover:scale-105 transition-transform">
+              <Droplets className="h-5 w-5 text-emerald-200" />
             </div>
-            <span className="text-xl font-extrabold tracking-tight">
+            <span className="text-2xl font-black tracking-tight text-ink">
               RainHarvest <span className="text-forest-700">AI</span>
             </span>
           </Link>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-black text-ink tracking-tight">
             Create Your Account
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ink-muted">
             Start modeling site hydrology, rainfall distribution, and optimal storage setups.
           </p>
         </div>
 
-        <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-card space-y-6">
+        <div className="neu-card p-6 sm:p-8 space-y-6">
           {error && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 flex items-start space-x-2">
+            <div className="rounded-xl border border-rose-300/80 bg-rose-50 p-3 text-xs text-rose-800 flex items-start space-x-2">
               <AlertCircle className="h-4 w-4 text-rose-600 mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -78,11 +78,11 @@ export const SignupPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="signup-name">
+              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="signup-name">
                 Full Name
               </label>
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-ink-muted">
                   <User className="h-4 w-4" />
                 </div>
                 <input
@@ -92,17 +92,17 @@ export const SignupPage: React.FC = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Prof. Ramesh Sharma"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-9 pr-3 py-2.5 text-xs text-slate-900 focus:border-forest-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-forest-600 transition"
+                  className="neu-input w-full pl-9 pr-3 py-2.5 text-xs text-ink"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="signup-email">
+              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="signup-email">
                 Email Address
               </label>
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-ink-muted">
                   <Mail className="h-4 w-4" />
                 </div>
                 <input
@@ -111,18 +111,18 @@ export const SignupPage: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ramesh@example.com"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-9 pr-3 py-2.5 text-xs text-slate-900 focus:border-forest-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-forest-600 transition"
+                  placeholder="engineer@domain.com"
+                  className="neu-input w-full pl-9 pr-3 py-2.5 text-xs text-ink"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="signup-password">
+              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="signup-password">
                 Password
               </label>
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-ink-muted">
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
@@ -132,12 +132,12 @@ export const SignupPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 6 characters"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-9 pr-10 py-2.5 text-xs text-slate-900 focus:border-forest-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-forest-600 transition"
+                  className="neu-input w-full pl-9 pr-10 py-2.5 text-xs text-ink"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-ink-muted hover:text-ink"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -146,11 +146,11 @@ export const SignupPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="signup-confirm-password">
+              <label className="block text-xs font-semibold text-ink mb-1" htmlFor="signup-confirm-password">
                 Confirm Password
               </label>
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-ink-muted">
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
@@ -159,8 +159,8 @@ export const SignupPage: React.FC = () => {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repeat your password"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-9 pr-3 py-2.5 text-xs text-slate-900 focus:border-forest-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-forest-600 transition"
+                  placeholder="Re-enter your password"
+                  className="neu-input w-full pl-9 pr-3 py-2.5 text-xs text-ink"
                 />
               </div>
             </div>
@@ -168,21 +168,21 @@ export const SignupPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-xl bg-forest-700 hover:bg-forest-800 disabled:opacity-50 text-white font-bold text-xs shadow-sm hover:shadow transition-all flex items-center justify-center space-x-2"
+              className="neu-btn-primary w-full h-11 rounded-xl font-bold text-xs shadow-neu-sm hover:shadow-neu transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
             >
               {loading ? (
-                <span>Registering account...</span>
+                <span>Creating Account...</span>
               ) : (
                 <>
-                  <span>Create Account</span>
+                  <span>Create Free Account</span>
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="pt-2 border-t border-slate-100 flex flex-col space-y-3 text-center">
-            <p className="text-xs text-slate-500">
+          <div className="pt-2 border-t border-[#DEDFD8] flex flex-col space-y-3.5 text-center">
+            <p className="text-xs text-ink-muted">
               Already have an account?{' '}
               <Link
                 to="/login"
@@ -195,18 +195,18 @@ export const SignupPage: React.FC = () => {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
+                <div className="w-full border-t border-[#DEDFD8]" />
               </div>
               <div className="relative flex justify-center text-[10px] uppercase font-mono">
-                <span className="bg-white px-2 text-slate-400">or</span>
+                <span className="bg-surface px-2.5 text-ink-muted">or</span>
               </div>
             </div>
 
             <Link
               to="/analyze"
-              className="w-full py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition"
+              className="neu-btn-secondary w-full py-2.5 rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-2"
             >
-              <UserCheck className="h-3.5 w-3.5 text-slate-500" />
+              <UserCheck className="h-4 w-4 text-forest-700" />
               <span>Continue as Guest (No Account Required)</span>
             </Link>
           </div>
@@ -215,5 +215,4 @@ export const SignupPage: React.FC = () => {
     </div>
   )
 }
-
 export default SignupPage

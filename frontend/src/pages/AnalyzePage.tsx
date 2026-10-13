@@ -66,12 +66,14 @@ export const AnalyzePage: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Guest Access Information Notice */}
         {isGuest && (
-          <div className="rounded-2xl border border-sky-200 bg-sky-50/90 p-4 sm:p-5 text-xs text-sky-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="neu-card p-4 sm:p-5 text-xs text-ink flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl animate-in fade-in">
             <div className="flex items-start space-x-3 min-w-0">
-              <Info className="h-5 w-5 text-sky-600 mt-0.5 flex-shrink-0" />
+              <div className="h-8 w-8 rounded-xl bg-surface border border-white/80 shadow-neu-sm flex items-center justify-center text-sky-700 flex-shrink-0 mt-0.5">
+                <Info className="h-4 w-4" />
+              </div>
               <div>
-                <span className="font-bold text-sm block">Guest Property Analysis Mode</span>
-                <p className="text-slate-600 leading-relaxed mt-0.5">
+                <span className="font-bold text-sm block text-ink">Guest Property Analysis Mode</span>
+                <p className="text-ink-secondary leading-relaxed mt-0.5">
                   You are evaluating property hydrology as a guest. All 5 steps, physical continuity equations,
                   and AI tank-sizing algorithms are active. Create an account to permanently save your records.
                 </p>
@@ -81,7 +83,7 @@ export const AnalyzePage: React.FC = () => {
               <Link
                 to="/signup"
                 state={{ from: { pathname: '/analyze' } }}
-                className="inline-flex items-center space-x-1.5 rounded-xl bg-forest-700 hover:bg-forest-800 text-white px-3.5 py-2 font-bold text-xs shadow-sm transition"
+                className="neu-btn-primary px-3.5 py-2 rounded-xl font-bold text-xs inline-flex items-center space-x-1.5"
               >
                 <UserPlus className="h-3.5 w-3.5" />
                 <span>Create Free Account</span>
@@ -92,7 +94,7 @@ export const AnalyzePage: React.FC = () => {
 
         {/* API Error Notification with Retry */}
         {apiError && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 sm:p-5 text-xs text-rose-900 flex flex-col sm:flex-row items-start justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="neu-card p-4 sm:p-5 text-xs text-rose-900 border border-rose-300 bg-rose-50/70 flex flex-col sm:flex-row items-start justify-between gap-3 rounded-2xl animate-in fade-in">
             <div className="flex items-start space-x-3 min-w-0">
               <AlertTriangle className="h-5 w-5 text-rose-600 mt-0.5 flex-shrink-0" />
               <div className="space-y-1">
@@ -115,7 +117,7 @@ export const AnalyzePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setApiError(null)}
-                className="rounded-xl border border-rose-300 bg-white hover:bg-rose-50 text-rose-800 px-3 py-1.5 font-semibold text-xs transition"
+                className="neu-btn-secondary px-3 py-1.5 rounded-xl font-semibold text-xs"
               >
                 Dismiss
               </button>
@@ -125,15 +127,15 @@ export const AnalyzePage: React.FC = () => {
 
         {/* View Mode Switcher Header if Analysis is available */}
         {analysisResult && (
-          <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-2 shadow-subtle">
-            <div className="flex items-center space-x-1">
+          <div className="flex items-center justify-between neu-card p-2 rounded-2xl">
+            <div className="flex items-center space-x-1.5 neu-inset p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => setView('form')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                   view === 'form'
-                    ? 'bg-forest-50 text-forest-800 border border-forest-200 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-surface text-ink shadow-neu-sm font-bold border border-white/80'
+                    : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 Edit Parameters
@@ -141,10 +143,10 @@ export const AnalyzePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setView('results')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                   view === 'results'
-                    ? 'bg-water-50 text-water-800 border border-water-200 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-surface text-forest-700 shadow-neu-sm font-bold border border-white/80'
+                    : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 Current Assessment Results
@@ -157,9 +159,9 @@ export const AnalyzePage: React.FC = () => {
                 setView('form')
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
-              className="text-xs text-slate-500 hover:text-slate-800 font-medium px-2 py-1 flex items-center space-x-1"
+              className="text-xs text-ink-secondary hover:text-ink font-semibold px-2.5 py-1 flex items-center space-x-1"
             >
-              <RotateCcw className="h-3 w-3" />
+              <RotateCcw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">New Assessment</span>
             </button>
           </div>
@@ -190,13 +192,13 @@ export const AnalyzePage: React.FC = () => {
                 onPromptSaveAccount={() => setShowAuthModal(true)}
               />
             ) : (
-              <div className="rounded-3xl border border-slate-200/90 bg-white p-12 text-center shadow-card max-w-2xl mx-auto my-12 space-y-5">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-forest-50 text-forest-700 border border-forest-200">
-                  <FileText className="h-7 w-7 text-forest-600" />
+              <div className="neu-card p-12 text-center max-w-2xl mx-auto my-12 space-y-5 rounded-3xl">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-surface border border-white/80 shadow-neu-sm text-forest-700">
+                  <FileText className="h-7 w-7 text-forest-700" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-xl font-bold text-slate-900">No Active Analysis Loaded</h3>
-                  <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                  <h3 className="text-xl font-black text-ink">No Active Analysis Loaded</h3>
+                  <p className="text-xs sm:text-sm text-ink-secondary max-w-md mx-auto leading-relaxed">
                     Configure your site parameters or choose a verification benchmark preset to calculate
                     optimal tank sizing, recharge structures, and water-balance curves.
                   </p>
@@ -205,7 +207,7 @@ export const AnalyzePage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setView('form')}
-                    className="inline-flex items-center space-x-2 rounded-xl bg-forest-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-forest-800 transition"
+                    className="neu-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center space-x-2"
                   >
                     <Calculator className="h-4 w-4" />
                     <span>Launch 5-Step Analysis Wizard</span>
@@ -217,9 +219,9 @@ export const AnalyzePage: React.FC = () => {
                         setAnalysisResult(history[0])
                         setView('results')
                       }}
-                      className="inline-flex items-center space-x-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                      className="neu-btn-secondary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center space-x-2"
                     >
-                      <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                      <RotateCcw className="h-3.5 w-3.5 text-ink-muted" />
                       <span>Load Latest Run</span>
                     </button>
                   )}

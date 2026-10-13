@@ -166,3 +166,14 @@ export interface GeocodeResult {
   elevation?: number
   source?: string
 }
+
+export interface PaginatedHistoryResponse {
+  analyses: AnalysisResponse[]
+  count: number
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+  has_more: boolean
+}
+

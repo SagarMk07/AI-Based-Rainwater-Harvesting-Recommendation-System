@@ -353,18 +353,18 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-5 sm:p-8 space-y-8">
+    <div className="neu-card p-5 sm:p-8 space-y-8">
       {/* Wizard Header & Stepper */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#DEDFD8] pb-4 shadow-[0_1px_0_rgba(108,126,114,0.12)]">
           <div>
             <span className="text-xs uppercase font-mono font-bold text-forest-700 tracking-wider">
               Step {currentStep} of {WIZARD_STEPS.length}
             </span>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-[#252B26] mt-0.5">
               {WIZARD_STEPS[currentStep - 1]?.title}
             </h2>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-[#687068] mt-1">
               {currentStep === 1 && 'Select location to automatically retrieve IMD climatological rainfall records.'}
               {currentStep === 2 && 'Specify rooftop catchment dimensions and construction material for runoff estimation.'}
               {currentStep === 3 && 'Define building occupancy and daily water consumption without double counting.'}
@@ -374,8 +374,8 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
           </div>
 
           {/* Quick Preset Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
-            <span className="text-[11px] font-bold text-slate-500 mr-1 flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto neu-inset p-1.5 rounded-xl border border-[#DEDFD8]">
+            <span className="text-[11px] font-bold text-[#687068] px-1 flex items-center gap-1">
               <Sparkles className="h-3 w-3 text-forest-600" /> Presets:
             </span>
             {(['A', 'B', 'C', 'D'] as const).map((p) => (
@@ -383,7 +383,11 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                 key={p}
                 type="button"
                 onClick={() => applyPreset(p)}
-                className="px-2 py-1 text-[11px] font-mono font-bold rounded-md bg-slate-100 hover:bg-forest-50 hover:text-forest-800 text-slate-700 border border-slate-200 transition-colors"
+                className={`px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg transition-all ${
+                  activePreset === p
+                    ? 'bg-forest-600 text-white shadow-sm'
+                    : 'neu-raised-sm text-[#252B26] hover:bg-white'
+                }`}
                 title={`Load benchmark test scenario ${p}`}
               >
                 {p}
@@ -404,9 +408,9 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
       {/* Validation Error Banner */}
       {validationError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-800 flex items-center space-x-2 animate-in fade-in">
-          <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-          <span>{validationError}</span>
+        <div className="rounded-xl border border-rose-300 bg-rose-50/90 p-3.5 text-xs text-rose-900 flex items-center space-x-2 animate-in fade-in shadow-neu-sm">
+          <AlertCircle className="h-4 w-4 text-rose-600 flex-shrink-0" />
+          <span className="font-semibold">{validationError}</span>
         </div>
       )}
 
@@ -427,7 +431,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#252B26] uppercase tracking-wider block">
                 Select City or Geographic Station
                 <InfoTooltip content="Uses Open-Meteo ERA5 real-world telemetry with 30-year IMD climatological normal fallback." />
               </label>
@@ -437,7 +441,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                 type="button"
                 onClick={handleUseMyLocation}
                 disabled={geolocationLoading}
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-forest-300 bg-forest-50 hover:bg-forest-100 text-forest-800 text-xs font-bold transition-all shadow-subtle disabled:opacity-60"
+                className="neu-btn-secondary px-3 py-1.5 text-xs font-bold space-x-1.5 text-forest-700 disabled:opacity-60"
               >
                 {geolocationLoading ? (
                   <>
@@ -470,14 +474,14 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                       annual_rainfall_mm: c.rain,
                     })
                   }}
-                  className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between h-full min-w-0 ${
+                  className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col justify-between h-full min-w-0 ${
                     formData.city.toLowerCase() === c.name.toLowerCase()
-                      ? 'border-forest-600 bg-forest-50/70 text-forest-950 font-bold ring-2 ring-forest-500/20 shadow-sm'
-                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                      ? 'border-forest-600 bg-[#EEEEEA] text-forest-700 font-bold shadow-neu-inset-sm'
+                      : 'border-transparent neu-raised-sm hover:shadow-neu text-[#252B26]'
                   }`}
                 >
                   <span className="block text-xs font-bold truncate">{c.name}</span>
-                  <span className="block text-[11px] text-slate-400 font-mono mt-0.5 truncate">
+                  <span className="block text-[11px] text-[#687068] font-mono mt-0.5 truncate">
                     {c.rain} mm/yr
                   </span>
                 </button>
@@ -487,11 +491,11 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
             {/* Custom Location & Coordinates */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+                <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                   Location / City Name
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <MapPin className="absolute left-3 top-3.5 h-4 w-4 text-[#8C948C]" />
                   <input
                     type="text"
                     value={formData.city}
@@ -500,13 +504,13 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                       setFormData({ ...formData, city: e.target.value })
                     }}
                     placeholder="Enter city or district name"
-                    className="h-10 w-full pl-9 pr-3 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                    className="neu-input pl-9 pr-3"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+                <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                   Latitude (°N) & Longitude (°E)
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -522,7 +526,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                         latitude: parseFloat(e.target.value) || 0,
                       })
                     }}
-                    className="h-10 w-full px-3 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                    className="neu-input px-3 font-mono"
                   />
                   <input
                     type="number"
@@ -536,18 +540,18 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                         longitude: parseFloat(e.target.value) || 0,
                       })
                     }}
-                    className="h-10 w-full px-3 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                    className="neu-input px-3 font-mono"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5 min-h-[1.25rem]">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-xs font-bold text-[#252B26]">
                     Annual Rainfall (mm)
                   </label>
                   {weatherLoading && (
-                    <span className="text-[11px] text-sky-600 font-mono flex items-center gap-1">
+                    <span className="text-[11px] text-sky-700 font-mono flex items-center gap-1">
                       <Loader2 className="h-3 w-3 animate-spin" /> Syncing...
                     </span>
                   )}
@@ -566,9 +570,9 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }}
                     min="1"
                     step="1"
-                    className="h-10 w-full px-3 pr-10 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                    className="neu-input px-3 pr-10 font-mono"
                   />
-                  <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
+                  <span className="absolute right-3 top-3 text-xs text-[#8C948C] font-mono">
                     mm
                   </span>
                 </div>
@@ -577,7 +581,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
             {/* Weather Telemetry Source Card */}
             {weatherInfo && (
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="p-4 rounded-2xl neu-inset border border-[#DEDFD8] space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center space-x-2">
                     {rainfallSource === 'preset' ? (
@@ -598,16 +602,16 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                         <span>LIVE ERA5 TELEMETRY</span>
                       </span>
                     )}
-                    <span className="text-xs font-bold text-slate-800">
+                    <span className="text-xs font-bold text-[#252B26]">
                       {weatherInfo.city} Station Environmental Records
                     </span>
                   </div>
-                  <span className="font-mono font-bold text-water-700 bg-water-50 px-2.5 py-1 rounded-lg border border-water-200 text-xs self-start sm:self-auto">
+                  <span className="font-mono font-bold text-forest-700 bg-[#EEEEEA] px-2.5 py-1 rounded-lg border border-forest-600/30 text-xs self-start sm:self-auto shadow-neu-sm">
                     {formData.annual_rainfall_mm} mm/year applied
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 font-mono">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#687068] font-mono">
                   <span>
                     Source:{' '}
                     {rainfallSource === 'preset'
@@ -634,7 +638,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+                <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                   Catchment Roof Area (m²)
                   <InfoTooltip content="Total flat projected footprint of the rooftop generating stormwater runoff." />
                 </label>
@@ -650,19 +654,19 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }
                     min="1"
                     step="5"
-                    className="h-10 w-full px-3 pr-10 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                    className="neu-input px-3 pr-10 font-mono"
                   />
-                  <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
+                  <span className="absolute right-3 top-3 text-xs text-[#8C948C] font-mono">
                     m²
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-400 mt-1 block">
+                <span className="text-[11px] text-[#8C948C] mt-1 block">
                   ≈ {(formData.roof_area_sqm * 10.764).toFixed(0)} sq ft
                 </span>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+                <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                   Filter Conveyance Efficiency
                   <InfoTooltip content="Standard 90% conveyance accounts for gutter overflow and first flush loss." />
                 </label>
@@ -674,7 +678,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                       filter_efficiency: parseFloat(e.target.value),
                     })
                   }
-                  className="h-10 w-full px-3 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                  className="neu-input px-3"
                 >
                   <option value={0.95}>95% (High efficiency automated screen)</option>
                   <option value={0.90}>90% (Standard SS mesh filter + diverter)</option>
@@ -685,7 +689,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
             {/* Roof Material Radio Cards */}
             <div>
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-2">
+              <label className="text-xs font-bold text-[#252B26] uppercase tracking-wider block mb-2">
                 Roof Construction Material & Runoff Factor
                 <InfoTooltip content="Runoff coefficient (C) reflects the percentage of rainfall that drains as usable runoff." />
               </label>
@@ -696,19 +700,19 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     <div
                       key={roof.id}
                       onClick={() => setFormData({ ...formData, roof_type: roof.id })}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between h-full min-w-0 ${
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between h-full min-w-0 ${
                         isSelected
-                          ? 'border-forest-600 bg-forest-50/70 shadow-sm ring-2 ring-forest-500/20'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                          ? 'border-forest-600 bg-[#EEEEEA] text-forest-700 font-bold shadow-neu-inset'
+                          : 'border-transparent neu-raised-sm hover:shadow-neu text-[#252B26]'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-slate-900">{roof.name}</span>
-                        <span className="text-xs font-mono font-bold text-forest-700 bg-forest-100 px-1.5 py-0.5 rounded">
+                        <span className="text-xs font-bold text-[#252B26]">{roof.name}</span>
+                        <span className="text-xs font-mono font-bold text-forest-700 bg-[#EEEEEA] border border-forest-600/20 px-1.5 py-0.5 rounded shadow-neu-sm">
                           C = {roof.coeff}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed mt-1">{roof.desc}</p>
+                      <p className="text-[11px] text-[#687068] leading-relaxed mt-1">{roof.desc}</p>
                     </div>
                   )
                 })}
@@ -722,12 +726,12 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+                <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                   Building Occupants / Residents
                   <InfoTooltip content="Number of full-time residents utilizing water on site." />
                 </label>
                 <div className="relative">
-                  <Users className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Users className="absolute left-3 top-3.5 h-4 w-4 text-[#8C948C]" />
                   <input
                     type="number"
                     value={formData.occupants}
@@ -741,16 +745,16 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }}
                     min="1"
                     max="1000"
-                    className="h-10 w-full pl-9 pr-3 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                    className="neu-input pl-9 pr-3 font-mono"
                   />
                 </div>
-                <span className="text-[11px] text-slate-400 mt-1 block">
+                <span className="text-[11px] text-[#8C948C] mt-1 block">
                   BIS Standard: ~135 litres/person/day
                 </span>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+                <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                   Total Daily Water Requirement (L/day)
                   <InfoTooltip content="Total consumption. You can override the calculated BIS average." />
                 </label>
@@ -766,28 +770,28 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }
                     min="1"
                     step="25"
-                    className="h-10 w-full px-3 pr-14 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                    className="neu-input px-3 pr-14 font-mono"
                   />
-                  <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
+                  <span className="absolute right-3 top-3 text-xs text-[#8C948C] font-mono">
                     L/day
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-400 mt-1 block font-mono">
+                <span className="text-[11px] text-[#8C948C] mt-1 block font-mono">
                   Annual Demand: {(formData.daily_demand_litres * 365).toLocaleString()} Litres/year
                 </span>
               </div>
             </div>
 
             {/* Instant Demand Comparison Banner */}
-            <div className="p-4 rounded-2xl bg-water-50/70 border border-water-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="p-4 rounded-2xl neu-inset border border-[#DEDFD8] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div>
-                <span className="font-bold text-water-950 block">Instant Theoretical Harvest Potential</span>
-                <span className="text-slate-600 text-[11px]">
+                <span className="font-bold text-[#252B26] block">Instant Theoretical Harvest Potential</span>
+                <span className="text-[#687068] text-[11px]">
                   {instantGrossHarvest.toLocaleString()} L/year theoretical harvest vs{' '}
                   {instantAnnualDemand.toLocaleString()} L/year demand.
                 </span>
               </div>
-              <div className="bg-white px-3 py-1.5 rounded-xl border border-water-200 font-mono text-water-800 font-bold text-xs whitespace-nowrap self-start sm:self-auto">
+              <div className="neu-raised-sm px-3 py-1.5 font-mono text-forest-800 font-bold text-xs whitespace-nowrap self-start sm:self-auto">
                 ~{potentialDemandCovered}% Theoretical Coverage
               </div>
             </div>
@@ -799,7 +803,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Soil Type Cards */}
             <div>
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-2">
+              <label className="text-xs font-bold text-[#252B26] uppercase tracking-wider block mb-2">
                 Sub-Surface Soil Characteristics
                 <InfoTooltip content="Soil percolation governs whether groundwater recharge via pits or trenches is hydraulically feasible." />
               </label>
@@ -810,19 +814,19 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     <div
                       key={soil.id}
                       onClick={() => setFormData({ ...formData, soil_type: soil.id })}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between h-full min-w-0 ${
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between h-full min-w-0 ${
                         isSelected
-                          ? 'border-forest-600 bg-forest-50/70 shadow-sm ring-2 ring-forest-500/20'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                          ? 'border-forest-600 bg-[#EEEEEA] text-forest-700 font-bold shadow-neu-inset'
+                          : 'border-transparent neu-raised-sm hover:shadow-neu text-[#252B26]'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-slate-900">{soil.name}</span>
-                        <span className="text-[10px] font-mono text-forest-700 bg-forest-100 px-1.5 py-0.5 rounded font-bold">
+                        <span className="text-xs font-bold text-[#252B26]">{soil.name}</span>
+                        <span className="text-[10px] font-mono font-bold text-forest-700 bg-[#EEEEEA] border border-forest-600/20 px-1.5 py-0.5 rounded shadow-neu-sm">
                           {soil.rate}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-relaxed mt-1">{soil.desc}</p>
+                      <p className="text-[11px] text-[#687068] leading-relaxed mt-1">{soil.desc}</p>
                     </div>
                   )
                 })}
@@ -831,7 +835,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+                <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                   Available Unpaved Open Ground (m²)
                   <InfoTooltip content="Space for excavating recharge pits, trenches, or filter chambers." />
                 </label>
@@ -847,21 +851,23 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                     }
                     min="0"
                     step="5"
-                    className="h-10 w-full px-3 pr-10 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                    className="neu-input px-3 pr-10 font-mono"
                   />
-                  <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
+                  <span className="absolute right-3 top-3 text-xs text-[#8C948C] font-mono">
                     m²
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+                <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                   Existing On-Site Borewell
                   <InfoTooltip content="Direct recharge into or adjacent to an existing borewell saves deep drilling costs." />
                 </label>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 h-auto sm:h-10 pt-1">
-                  <label className="inline-flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 h-auto sm:h-11 pt-1">
+                  <label className={`inline-flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium cursor-pointer transition-all ${
+                    formData.has_existing_borewell ? 'bg-[#EEEEEA] text-forest-700 font-bold border border-forest-600/40 shadow-neu-inset-sm' : 'neu-raised-sm text-[#252B26]'
+                  }`}>
                     <input
                       type="radio"
                       name="borewell"
@@ -869,9 +875,11 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                       onChange={() => setFormData({ ...formData, has_existing_borewell: true })}
                       className="text-forest-600 focus:ring-forest-500"
                     />
-                    <span>Yes, functional or dry borewell exists</span>
+                    <span>Yes, functional/dry borewell exists</span>
                   </label>
-                  <label className="inline-flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                  <label className={`inline-flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium cursor-pointer transition-all ${
+                    !formData.has_existing_borewell ? 'bg-[#EEEEEA] text-forest-700 font-bold border border-forest-600/40 shadow-neu-inset-sm' : 'neu-raised-sm text-[#252B26]'
+                  }`}>
                     <input
                       type="radio"
                       name="borewell"
@@ -891,12 +899,12 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
         {currentStep === 5 && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
-              <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center min-h-[1.25rem]">
+              <label className="text-xs font-bold text-[#252B26] mb-1.5 flex items-center min-h-[1.25rem]">
                 Maximum Capital Budget (₹ INR)
                 <InfoTooltip content="Optimization engine penalizes candidate tanks exceeding your specified budget." />
               </label>
               <div className="relative max-w-md">
-                <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-mono font-bold">
+                <span className="absolute left-3 top-3 text-xs text-[#8C948C] font-mono font-bold">
                   ₹
                 </span>
                 <input
@@ -910,41 +918,41 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
                   }
                   placeholder="e.g. 100000"
                   step="5000"
-                  className="h-10 w-full pl-8 pr-3 text-xs sm:text-sm rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-forest-500/20 focus:border-forest-600"
+                  className="neu-input pl-8 pr-3 font-mono"
                 />
               </div>
-              <span className="text-[11px] text-slate-400 mt-1 block">
+              <span className="text-[11px] text-[#8C948C] mt-1 block">
                 Leave empty for unconstrained engineering optimum.
               </span>
             </div>
 
             {/* Assessment Review Summary Card */}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 space-y-3">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="rounded-2xl neu-inset p-4 sm:p-5 space-y-3 border border-[#DEDFD8]">
+              <h3 className="text-xs font-bold text-[#252B26] uppercase tracking-wider flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-forest-600" />
                 <span>Verification Review Summary</span>
               </h3>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-                <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
-                  <span className="text-[10px] text-slate-400 block truncate">Location</span>
-                  <span className="font-bold text-slate-800 truncate mt-1">{formData.city}</span>
+                <div className="p-3 neu-raised-sm flex flex-col justify-between h-full min-w-0">
+                  <span className="text-[10px] text-[#8C948C] block truncate">Location</span>
+                  <span className="font-bold text-[#252B26] truncate mt-1">{formData.city}</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
-                  <span className="text-[10px] text-slate-400 block truncate">Roof Area</span>
-                  <span className="font-bold text-slate-800 truncate mt-1">{formData.roof_area_sqm} m²</span>
+                <div className="p-3 neu-raised-sm flex flex-col justify-between h-full min-w-0">
+                  <span className="text-[10px] text-[#8C948C] block truncate">Roof Area</span>
+                  <span className="font-bold text-[#252B26] truncate mt-1">{formData.roof_area_sqm} m²</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
-                  <span className="text-[10px] text-slate-400 block truncate">Rainfall</span>
-                  <span className="font-bold text-slate-800 truncate mt-1">{formData.annual_rainfall_mm} mm</span>
+                <div className="p-3 neu-raised-sm flex flex-col justify-between h-full min-w-0">
+                  <span className="text-[10px] text-[#8C948C] block truncate">Rainfall</span>
+                  <span className="font-bold text-[#252B26] truncate mt-1">{formData.annual_rainfall_mm} mm</span>
                 </div>
-                <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between h-full min-w-0">
-                  <span className="text-[10px] text-slate-400 block truncate">Soil Type</span>
-                  <span className="font-bold text-slate-800 capitalize truncate mt-1">{formData.soil_type}</span>
+                <div className="p-3 neu-raised-sm flex flex-col justify-between h-full min-w-0">
+                  <span className="text-[10px] text-[#8C948C] block truncate">Soil Type</span>
+                  <span className="font-bold text-[#252B26] capitalize truncate mt-1">{formData.soil_type}</span>
                 </div>
               </div>
 
-              <div className="text-[11px] text-slate-500 pt-1">
+              <div className="text-[11px] text-[#687068] pt-1">
                 Clicking <strong className="text-forest-700">"Execute Hydrological Simulation"</strong>{' '}
                 will simulate a 12-month iterative water balance across 10 candidate tank capacities and generate
                 an explainable civil sizing recommendation.
@@ -954,13 +962,13 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
         )}
 
         {/* Wizard Navigation Footer */}
-        <div className="flex items-center justify-between border-t border-slate-100 pt-5">
+        <div className="flex items-center justify-between border-t border-[#DEDFD8] pt-5 shadow-[0_1px_0_rgba(108,126,114,0.08)]">
           {currentStep > 1 ? (
             <button
               type="button"
               onClick={handleBack}
               disabled={loading}
-              className="h-11 px-5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-xs transition-colors inline-flex items-center space-x-1.5"
+              className="neu-btn-secondary h-11 px-5 text-xs font-semibold inline-flex items-center space-x-1.5"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Previous Step</span>
@@ -974,7 +982,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
               type="button"
               onClick={handleNext}
               disabled={loading}
-              className="h-11 px-6 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-sm transition-all inline-flex items-center space-x-1.5"
+              className="neu-btn-primary h-11 px-6 text-xs font-bold inline-flex items-center space-x-1.5"
             >
               <span>Continue to Step {currentStep + 1}</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -983,7 +991,7 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
             <button
               type="submit"
               disabled={loading}
-              className="h-11 px-6 rounded-xl bg-forest-700 hover:bg-forest-800 text-white font-extrabold text-xs shadow-md transition-all inline-flex items-center space-x-2 disabled:opacity-60"
+              className="neu-btn-primary h-11 px-7 text-xs font-extrabold inline-flex items-center space-x-2 disabled:opacity-60"
             >
               <Calculator className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               <span>{loading ? 'Simulating 12-Month Water Balance...' : 'Execute Hydrological Simulation'}</span>

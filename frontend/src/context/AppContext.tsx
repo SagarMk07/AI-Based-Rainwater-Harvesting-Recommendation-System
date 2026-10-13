@@ -13,6 +13,11 @@ export interface AppContextType {
   analysisResult: AnalysisResponse | null
   setAnalysisResult: (result: AnalysisResponse | null) => void
   history: AnalysisResponse[]
+  recentAnalyses: AnalysisResponse[]
+  recentLoading: boolean
+  recentError: string | null
+  refetchRecent: () => Promise<void>
+  reopenAnalysis: (id: string) => Promise<AnalysisResponse | null>
   saveToHistory: (item: AnalysisResponse) => Promise<void>
   deleteFromHistory: (id: string) => Promise<void>
   clearHistory: () => void
@@ -42,25 +47,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   })
 
-  // Sync history with backend when user session changes
+  const [recentAnalyses, setRecentAnalyses] = useState<AnalysisResponse[]>([])
+  const [recentLoading, setRecentLoading] = useState<boolean>(false)
+  const [recentError, setRecentError] = useState<string | null>(null)
+
+  const refetchRecent = async () => {
+    setRecentLoading(true)
+    setRecentError(null)
+    try {
+      const res = await apiClient.get('/analysis/history?limit=5')
+      if (res.data?.analyses) {
+        setRecentAnalyses(res.data.analyses)
+      }
+    } catch (err: any) {
+      setRecentError(err?.response?.data?.detail?.message || err?.message || 'Failed to fetch recent analyses')
+    } finally {
+      setRecentLoading(false)
+    }
+  }
+
+  // Sync history and recent records with backend when user session changes
   useEffect(() => {
     async function syncHistory() {
+      setRecentLoading(true)
+      setRecentError(null)
       try {
-        const res = await apiClient.get('/analysis/history')
-        if (res.data?.analyses) {
-          setHistory(res.data.analyses)
-          localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(res.data.analyses))
+        const [recentRes, fullRes] = await Promise.all([
+          apiClient.get('/analysis/history?limit=5'),
+          apiClient.get('/analysis/history'),
+        ])
+        if (recentRes.data?.analyses) {
+          setRecentAnalyses(recentRes.data.analyses)
         }
-      } catch {
-        // Fallback to local storage if offline
+        if (fullRes.data?.analyses) {
+          setHistory(fullRes.data.analyses)
+          localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(fullRes.data.analyses))
+        }
+      } catch (err: any) {
+        setRecentError(err?.response?.data?.detail?.message || err?.message || 'Failed to connect to history service')
+      } finally {
+        setRecentLoading(false)
       }
     }
     syncHistory()
   }, [user])
 
+  const reopenAnalysis = async (id: string): Promise<AnalysisResponse | null> => {
+    try {
+      const res = await apiClient.get<AnalysisResponse>(`/analysis/${id}`)
+      if (res.data) {
+        setAnalysisResult(res.data)
+        return res.data
+      }
+    } catch (err) {
+      console.warn('Reopen from backend failed, checking local store:', err)
+    }
+
+    // Fallback if cached locally
+    const cached = history.find((h) => h.request_id === id) || recentAnalyses.find((h) => h.request_id === id)
+    if (cached) {
+      setAnalysisResult(cached)
+      return cached
+    }
+    return null
+  }
+
   const saveToHistory = async (item: AnalysisResponse) => {
     try {
-      const updated = [item, ...history.filter((h) => h.request_id !== item.request_id)].slice(0, 25)
+      // Prepend to recent analyses ensuring max 5 displayed
+      setRecentAnalyses((prev) => [item, ...prev.filter((h) => h.request_id !== item.request_id)].slice(0, 5))
+
+      const updated = [item, ...history.filter((h) => h.request_id !== item.request_id)].slice(0, 50)
       setHistory(updated)
       localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(updated))
 
@@ -78,6 +135,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {
       // Ignore network errors on local deletion
     }
+    setRecentAnalyses((prev) => prev.filter((h) => h.request_id !== requestId))
     const updated = history.filter((h) => h.request_id !== requestId)
     setHistory(updated)
     localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(updated))
@@ -85,6 +143,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearHistory = () => {
     setHistory([])
+    setRecentAnalyses([])
     localStorage.removeItem(LOCAL_STORAGE_HISTORY_KEY)
   }
 
@@ -98,6 +157,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         analysisResult,
         setAnalysisResult,
         history,
+        recentAnalyses,
+        recentLoading,
+        recentError,
+        refetchRecent,
+        reopenAnalysis,
         saveToHistory,
         deleteFromHistory,
         clearHistory,
@@ -111,6 +175,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     </AppContext.Provider>
   )
 }
+
 
 export const useAppContext = () => {
   const context = useContext(AppContext)

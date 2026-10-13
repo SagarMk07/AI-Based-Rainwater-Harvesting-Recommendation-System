@@ -92,16 +92,16 @@ export const RainHarvestChatWidget: React.FC = () => {
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
           aria-label={isOpen ? 'Close hydrological assistant' : 'Open hydrological assistant'}
-          className="group relative flex items-center justify-center h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-forest-700 hover:bg-forest-800 text-white shadow-elevated transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-forest-500 focus:ring-offset-2"
+          className="group relative flex items-center justify-center h-12 w-12 sm:h-13 sm:w-13 rounded-2xl bg-surface border border-white/80 text-forest-700 shadow-neu hover:shadow-neu-sm active:shadow-neu-inset-sm transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-forest-600 focus:ring-offset-2"
         >
           {isOpen ? (
-            <X className="h-6 w-6 transition-transform duration-200" />
+            <X className="h-5 w-5 transition-transform duration-200" />
           ) : (
             <>
-              <MessageSquare className="h-6 w-6 transition-transform duration-200" />
-              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+              <MessageSquare className="h-5 w-5 transition-transform duration-200" />
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-forest-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-forest-600"></span>
               </span>
             </>
           )}
@@ -114,16 +114,16 @@ export const RainHarvestChatWidget: React.FC = () => {
           role="dialog"
           aria-modal="true"
           aria-labelledby="chat-widget-title"
-          className="fixed bottom-20 right-5 sm:bottom-24 sm:right-6 z-40 w-[calc(100vw-2.5rem)] max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col h-[480px] max-h-[calc(100vh-7rem)] animate-in fade-in slide-in-from-bottom-4 duration-200"
+          className="fixed bottom-20 right-5 sm:bottom-22 sm:right-6 z-40 w-[calc(100vw-2.5rem)] max-w-sm rounded-3xl neu-card bg-[#F4F4F0] border border-[#DEDFD8] shadow-neu-lg overflow-hidden flex flex-col h-[480px] max-h-[calc(100vh-7rem)] animate-in fade-in slide-in-from-bottom-4 duration-200 text-ink"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-forest-800 to-forest-900 text-white px-4 py-3.5 flex items-center justify-between border-b border-forest-950/20">
+          <div className="bg-[#132018] text-white px-4 py-3.5 flex items-center justify-between border-b border-white/10">
             <div className="flex items-center space-x-2.5">
-              <div className="h-8 w-8 rounded-full bg-forest-700/80 border border-forest-600 flex items-center justify-center text-forest-200">
+              <div className="h-8 w-8 rounded-xl bg-forest-700/80 border border-forest-500/40 flex items-center justify-center text-forest-200">
                 <Bot className="h-4.5 w-4.5" />
               </div>
               <div>
-                <h3 id="chat-widget-title" className="text-sm font-bold text-white flex items-center gap-1.5">
+                <h3 id="chat-widget-title" className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                   RainHarvest Assistant
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                 </h3>
@@ -133,7 +133,7 @@ export const RainHarvestChatWidget: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1 rounded-lg text-forest-200 hover:text-white hover:bg-forest-700/60 transition-colors"
+              className="p-1 rounded-lg text-forest-200 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Close chat"
             >
               <X className="h-4 w-4" />
@@ -141,14 +141,14 @@ export const RainHarvestChatWidget: React.FC = () => {
           </div>
 
           {/* Quick FAQ Suggestion Chips */}
-          <div className="bg-slate-50 border-b border-slate-100 px-3 py-2 flex items-center gap-1.5 overflow-x-auto text-[11px] scrollbar-none">
-            <Sparkles className="h-3 w-3 text-forest-600 flex-shrink-0" />
+          <div className="bg-[#EEEEEA] border-b border-[#DEDFD8] px-3 py-2 flex items-center gap-1.5 overflow-x-auto text-[11px] scrollbar-none">
+            <Sparkles className="h-3 w-3 text-forest-700 flex-shrink-0" />
             {PRESET_QUESTIONS.map((q, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSend(q)}
-                className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white hover:bg-forest-50 border border-slate-200 hover:border-forest-200 text-slate-700 hover:text-forest-800 text-[10px] font-medium transition-colors"
+                className="whitespace-nowrap px-2.5 py-1 rounded-full bg-[#F4F4F0] border border-[#DEDFD8] hover:border-forest-500 text-ink text-[10px] font-medium transition-colors shadow-neu-sm hover:shadow-neu-inset-sm"
               >
                 {q}
               </button>
@@ -156,7 +156,7 @@ export const RainHarvestChatWidget: React.FC = () => {
           </div>
 
           {/* Messages Body */}
-          <div className="flex-1 p-3.5 overflow-y-auto space-y-3 bg-white">
+          <div className="flex-1 p-3.5 overflow-y-auto space-y-3 bg-[#F4F4F0]">
             {messages.map((m) => (
               <div
                 key={m.id}
@@ -165,14 +165,14 @@ export const RainHarvestChatWidget: React.FC = () => {
                 <div
                   className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
                     m.sender === 'user'
-                      ? 'bg-forest-700 text-white rounded-br-none'
-                      : 'bg-slate-100 text-slate-800 rounded-bl-none border border-slate-200/80'
+                      ? 'bg-forest-600 text-white shadow-neu-sm rounded-br-none'
+                      : 'bg-[#EEEEEA] text-ink border border-[#DEDFD8] shadow-neu-sm rounded-bl-none'
                   }`}
                 >
                   <p>{m.text}</p>
                   <span
                     className={`block text-[9px] mt-1 font-mono ${
-                      m.sender === 'user' ? 'text-forest-200 text-right' : 'text-slate-400'
+                      m.sender === 'user' ? 'text-forest-100 text-right' : 'text-ink-muted'
                     }`}
                   >
                     {m.timestamp}
@@ -189,19 +189,19 @@ export const RainHarvestChatWidget: React.FC = () => {
               e.preventDefault()
               handleSend()
             }}
-            className="p-2.5 border-t border-slate-200 bg-slate-50/80 flex items-center space-x-2"
+            className="p-2.5 border-t border-[#DEDFD8] bg-[#EEEEEA] flex items-center space-x-2"
           >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about tank sizing, runoff..."
-              className="flex-1 h-9 px-3 text-xs rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-600 focus:border-forest-600"
+              className="neu-input flex-1 h-9 px-3 text-xs placeholder:text-ink-muted"
             />
             <button
               type="submit"
               disabled={!input.trim()}
-              className="h-9 w-9 rounded-xl bg-forest-700 hover:bg-forest-800 disabled:bg-slate-300 text-white flex items-center justify-center transition-colors flex-shrink-0"
+              className="neu-btn-primary h-9 w-9 p-0 rounded-xl flex items-center justify-center flex-shrink-0 disabled:opacity-40"
               aria-label="Send question"
             >
               <Send className="h-4 w-4" />

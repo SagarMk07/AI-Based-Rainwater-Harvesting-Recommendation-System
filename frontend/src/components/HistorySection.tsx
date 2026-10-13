@@ -4,26 +4,133 @@ import {
   ArrowUpRight,
   Clock,
   PlusCircle,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
 import type { AnalysisResponse } from '../types/analysis'
 import { PageHeader } from './ui/PageHeader'
 
 interface Props {
   history: AnalysisResponse[]
+  loading?: boolean
+  error?: string | null
+  onRetry?: () => void
   onSelect: (item: AnalysisResponse) => void
   onClear: () => void
   onDelete: (requestId: string) => void
   onStartNew: () => void
+  onBackToDashboard?: () => void
+  page?: number
+  pageSize?: number
+  totalPages?: number
+  totalCount?: number
+  onPageChange?: (newPage: number) => void
 }
 
 export const HistorySection: React.FC<Props> = ({
   history,
+  loading = false,
+  error = null,
+  onRetry,
   onSelect,
   onClear,
   onDelete,
   onStartNew,
+  onBackToDashboard,
+  page = 1,
+  pageSize = 10,
+  totalPages = 1,
+  totalCount = 0,
+  onPageChange,
 }) => {
-  // Empty State (Section 23)
+  const currentTotal = totalCount || history.length
+
+  // Loading State
+  if (loading && history.length === 0) {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-300">
+        <PageHeader
+          eyebrow={
+            <span className="text-xs uppercase font-mono font-bold text-forest-700 tracking-wider">
+              Saved Archives
+            </span>
+          }
+          title="Archived Property Analyses"
+          description="Past property evaluations, storage sizing simulations, and investment reports."
+          actions={
+            onBackToDashboard && (
+              <button
+                type="button"
+                onClick={onBackToDashboard}
+                className="neu-btn-secondary h-10 px-4 rounded-xl font-semibold text-xs inline-flex items-center space-x-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Dashboard</span>
+              </button>
+            )
+          }
+        />
+        <div className="neu-card p-8 text-center space-y-4 rounded-3xl animate-pulse">
+          <div className="h-10 w-10 bg-[#DEDFD8] rounded-xl mx-auto"></div>
+          <div className="h-4 bg-[#DEDFD8] rounded w-1/3 mx-auto"></div>
+          <div className="h-3 bg-[#DEDFD8] rounded w-1/2 mx-auto"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error State
+  if (error && history.length === 0) {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-300">
+        <PageHeader
+          eyebrow={
+            <span className="text-xs uppercase font-mono font-bold text-rose-700 tracking-wider">
+              System Notice
+            </span>
+          }
+          title="Analysis History Unavailable"
+          description="Could not synchronize persisted records from storage."
+          actions={
+            onBackToDashboard && (
+              <button
+                type="button"
+                onClick={onBackToDashboard}
+                className="neu-btn-secondary h-10 px-4 rounded-xl font-semibold text-xs inline-flex items-center space-x-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Dashboard</span>
+              </button>
+            )
+          }
+        />
+        <div className="neu-card p-8 sm:p-12 text-center max-w-xl mx-auto space-y-4 rounded-3xl border border-rose-200">
+          <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-ink">Failed to Load Saved Analyses</h3>
+            <p className="text-xs text-ink-muted max-w-sm mx-auto">{error}</p>
+          </div>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="neu-btn-primary px-5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center space-x-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Retry Request</span>
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Empty State
   if (history.length === 0) {
     return (
       <div className="space-y-8 animate-in fade-in duration-300">
@@ -36,31 +143,43 @@ export const HistorySection: React.FC<Props> = ({
           title="Archived Property Analyses"
           description="Past property evaluations, storage sizing simulations, and investment reports."
           actions={
-            <button
-              type="button"
-              onClick={onStartNew}
-              className="h-10 px-5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-subtle inline-flex items-center space-x-1.5 transition-all"
-            >
-              <PlusCircle className="h-4 w-4" />
-              <span>+ New Analysis</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              {onBackToDashboard && (
+                <button
+                  type="button"
+                  onClick={onBackToDashboard}
+                  className="neu-btn-secondary h-10 px-4 rounded-xl font-semibold text-xs inline-flex items-center space-x-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Dashboard</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onStartNew}
+                className="neu-btn-primary h-10 px-5 rounded-xl font-bold text-xs inline-flex items-center space-x-2"
+              >
+                <PlusCircle className="h-4 w-4" />
+                <span>+ New Analysis</span>
+              </button>
+            </div>
           }
         />
 
-        <div className="rounded-3xl border border-dashed border-slate-300 p-8 sm:p-12 text-center bg-white space-y-4 shadow-subtle max-w-xl mx-auto my-6">
-          <div className="h-14 w-14 rounded-2xl bg-forest-50 text-forest-700 flex items-center justify-center mx-auto border border-forest-100">
+        <div className="neu-card p-8 sm:p-12 text-center max-w-xl mx-auto my-6 space-y-4 rounded-3xl">
+          <div className="h-14 w-14 rounded-2xl bg-surface border border-white/80 shadow-neu-sm text-forest-700 flex items-center justify-center mx-auto">
             <Clock className="h-7 w-7" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-bold text-slate-900">No Analyses Yet</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+            <h3 className="text-base font-bold text-ink">No Analyses Yet</h3>
+            <p className="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
               Analyze your first property to evaluate rainfall catchment yield, compare candidate tanks, and see your customized AI recommendation.
             </p>
           </div>
           <button
             type="button"
             onClick={onStartNew}
-            className="h-10 px-5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs shadow-sm transition-all inline-flex items-center space-x-2"
+            className="neu-btn-primary h-10 px-5 rounded-xl font-bold text-xs inline-flex items-center space-x-2"
           >
             <PlusCircle className="h-4 w-4" />
             <span>Start Analysis</span>
@@ -69,6 +188,9 @@ export const HistorySection: React.FC<Props> = ({
       </div>
     )
   }
+
+  const startRecord = (page - 1) * pageSize + 1
+  const endRecord = Math.min(page * pageSize, currentTotal)
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -79,8 +201,8 @@ export const HistorySection: React.FC<Props> = ({
             <span className="text-xs uppercase font-mono font-bold text-forest-700 tracking-wider">
               Saved Archives
             </span>
-            <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">
-              {history.length} Saved
+            <span className="text-xs font-mono bg-surface border border-white/80 shadow-neu-sm text-ink-secondary px-2.5 py-0.5 rounded-full font-bold">
+              {currentTotal} Persisted
             </span>
           </div>
         }
@@ -88,10 +210,21 @@ export const HistorySection: React.FC<Props> = ({
         description="Past property evaluations, storage sizing simulations, and investment reports."
         actions={
           <>
+            {onBackToDashboard && (
+              <button
+                type="button"
+                onClick={onBackToDashboard}
+                className="neu-btn-secondary h-10 px-4 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Dashboard</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onStartNew}
-              className="h-10 px-4 rounded-xl bg-forest-600 hover:bg-forest-700 text-white text-xs font-bold shadow-subtle inline-flex items-center space-x-1.5 transition-colors"
+              className="neu-btn-primary h-10 px-4 rounded-xl text-xs font-bold inline-flex items-center space-x-2"
             >
               <PlusCircle className="h-4 w-4" />
               <span>+ New Analysis</span>
@@ -100,150 +233,210 @@ export const HistorySection: React.FC<Props> = ({
             <button
               type="button"
               onClick={onClear}
-              className="h-10 px-4 rounded-xl border border-slate-200 text-slate-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold transition-colors inline-flex items-center space-x-1.5"
+              className="neu-btn-secondary h-10 px-4 rounded-xl text-xs font-semibold hover:text-rose-700 inline-flex items-center space-x-2"
             >
               <Trash2 className="h-4 w-4" />
-              <span>Clear All</span>
+              <span>Clear Local</span>
             </button>
           </>
         }
       />
 
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-5 sm:p-6 space-y-6">
-
-      {/* Desktop Table View (hidden on mobile) */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-              <th className="py-3 px-3">Date</th>
-              <th className="py-3 px-3">Location</th>
-              <th className="py-3 px-3">Roof Area</th>
-              <th className="py-3 px-3">Rainfall</th>
-              <th className="py-3 px-3">Recommended System</th>
-              <th className="py-3 px-3">Harvest Potential</th>
-              <th className="py-3 px-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 font-medium">
-            {history.map((item) => (
-              <tr key={item.request_id} className="hover:bg-slate-50/80 transition-colors">
-                <td className="py-3.5 px-3 font-mono text-slate-500 text-[11px]">
-                  {new Date(item.timestamp).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </td>
-                <td className="py-3.5 px-3">
-                  <span className="font-bold text-slate-900 block">{item.weather.city}</span>
-                  <span className="text-[10px] text-slate-400 font-mono">{item.weather.state}</span>
-                </td>
-                <td className="py-3.5 px-3 font-mono text-slate-700">
-                  {item.explainability?.engineering_factors?.catchment_sqm || 200} m²
-                </td>
-                <td className="py-3.5 px-3 font-mono text-slate-700">
-                  {item.weather.annual_rainfall_mm} mm
-                </td>
-                <td className="py-3.5 px-3">
-                  <span className="inline-block px-2.5 py-1 rounded-lg bg-forest-50 text-forest-800 border border-forest-200/80 text-[11px] font-semibold">
-                    {item.recommendation.system_type}
-                  </span>
-                </td>
-                <td className="py-3.5 px-3 font-mono">
-                  <span className="font-bold text-slate-900 block">
-                    {item.recommendation.annual_gross_harvest_litres.toLocaleString()} L
-                  </span>
-                  <span className="text-[10px] text-forest-700">
-                    {item.recommendation.water_savings_percentage}% demand met
-                  </span>
-                </td>
-                <td className="py-3.5 px-3 text-right">
-                  <div className="inline-flex items-center space-x-1.5">
-                    <button
-                      onClick={() => onSelect(item)}
-                      className="px-2.5 py-1.5 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-bold text-xs flex items-center space-x-1 transition-colors shadow-subtle"
-                    >
-                      <span>View</span>
-                      <ArrowUpRight className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(item.request_id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                      title="Delete record"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </td>
+      <div className="neu-card p-5 sm:p-6 space-y-6 rounded-3xl">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#DEDFD8] text-ink-muted font-bold uppercase tracking-wider text-[11px]">
+                <th className="py-3 px-3">Date</th>
+                <th className="py-3 px-3">Location</th>
+                <th className="py-3 px-3">Roof Area</th>
+                <th className="py-3 px-3">Rainfall</th>
+                <th className="py-3 px-3">Recommended System</th>
+                <th className="py-3 px-3">Harvest Potential</th>
+                <th className="py-3 px-3 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-[#DEDFD8] font-medium">
+              {history.map((item) => {
+                const cityName = item.weather?.city || 'Location'
+                const stateName = item.weather?.state || ''
+                const roofArea = item.explainability?.engineering_factors?.catchment_sqm || 200
+                const annualRain = item.weather?.annual_rainfall_mm ?? 0
+                const sysType = item.recommendation?.system_type || 'Custom System'
+                const grossHarvest = item.recommendation?.annual_gross_harvest_litres ?? 0
+                const savingsPct = item.recommendation?.water_savings_percentage ?? 0
+                const formattedDate = item.timestamp
+                  ? new Date(item.timestamp).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : 'Saved'
 
-      {/* Mobile Card Layout (Section 22) */}
-      <div className="md:hidden space-y-3">
-        {history.map((item) => (
-          <div
-            key={item.request_id}
-            className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-900 text-sm">{item.weather.city}</span>
-              <span className="text-[11px] font-mono text-slate-400">
-                {new Date(item.timestamp).toLocaleDateString()}
-              </span>
-            </div>
+                return (
+                  <tr key={item.request_id} className="hover:bg-[#EEEEEA] transition-colors">
+                    <td className="py-3.5 px-3 font-mono text-ink-muted text-[11px]">
+                      {formattedDate}
+                    </td>
+                    <td className="py-3.5 px-3">
+                      <span className="font-bold text-ink block">{cityName}</span>
+                      {stateName && <span className="text-[10px] text-ink-muted font-mono">{stateName}</span>}
+                    </td>
+                    <td className="py-3.5 px-3 font-mono text-ink-secondary">
+                      {roofArea} m²
+                    </td>
+                    <td className="py-3.5 px-3 font-mono text-ink-secondary">
+                      {annualRain} mm
+                    </td>
+                    <td className="py-3.5 px-3">
+                      <span className="inline-block px-2.5 py-1 rounded-lg bg-surface border border-white/80 shadow-neu-sm text-forest-800 text-[11px] font-bold">
+                        {sysType}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3 font-mono">
+                      <span className="font-bold text-ink block">
+                        {grossHarvest.toLocaleString()} L
+                      </span>
+                      <span className="text-[10px] text-forest-700 font-bold">
+                        {savingsPct}% demand met
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3 text-right">
+                      <div className="inline-flex items-center space-x-1.5">
+                        <button
+                          onClick={() => onSelect(item)}
+                          className="neu-btn-primary px-3 py-1.5 rounded-lg font-bold text-xs inline-flex items-center space-x-1"
+                        >
+                          <span>Reopen</span>
+                          <ArrowUpRight className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => onDelete(item.request_id)}
+                          className="p-1.5 text-ink-muted hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                          title="Delete record"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
 
-            <div className="text-xs">
-              <span className="font-semibold text-forest-800 bg-forest-50 px-2 py-0.5 rounded border border-forest-200 block truncate">
-                {item.recommendation.system_type}
-              </span>
-            </div>
+        {/* Mobile Card Layout */}
+        <div className="md:hidden space-y-3.5">
+          {history.map((item) => {
+            const cityName = item.weather?.city || 'Location'
+            const roofArea = item.explainability?.engineering_factors?.catchment_sqm || 200
+            const annualRain = item.weather?.annual_rainfall_mm ?? 0
+            const sysType = item.recommendation?.system_type || 'Custom System'
+            const grossHarvest = item.recommendation?.annual_gross_harvest_litres ?? 0
+            const savingsPct = item.recommendation?.water_savings_percentage ?? 0
+            const formattedDate = item.timestamp
+              ? new Date(item.timestamp).toLocaleDateString()
+              : 'Saved'
 
-            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600">
-              <div>
-                <span className="text-slate-400 block">Rainfall</span>
-                <span>{item.weather.annual_rainfall_mm} mm</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block">Roof Area</span>
-                <span>{item.explainability?.engineering_factors?.catchment_sqm || 200} m²</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block">Harvest</span>
-                <span className="font-bold text-slate-900">
-                  {item.recommendation.annual_gross_harvest_litres.toLocaleString()} L
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block">Savings</span>
-                <span className="text-forest-700 font-bold">
-                  {item.recommendation.water_savings_percentage}%
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between">
-              <button
-                onClick={() => onSelect(item)}
-                className="px-3 py-1.5 rounded-lg bg-forest-600 text-white font-bold text-xs flex items-center space-x-1"
+            return (
+              <div
+                key={item.request_id}
+                className="neu-card-sm p-4 space-y-3 rounded-2xl"
               >
-                <span>View Analysis</span>
-                <ArrowUpRight className="h-3 w-3" />
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-ink text-sm">{cityName}</span>
+                  <span className="text-[11px] font-mono text-ink-muted">
+                    {formattedDate}
+                  </span>
+                </div>
+
+                <div className="text-xs">
+                  <span className="font-semibold text-forest-800 bg-surface px-2.5 py-1 rounded-lg border border-white/80 shadow-neu-sm block truncate">
+                    {sysType}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-ink-secondary">
+                  <div>
+                    <span className="text-ink-muted block text-[10px]">Rainfall</span>
+                    <span>{annualRain} mm</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted block text-[10px]">Roof Area</span>
+                    <span>{roofArea} m²</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted block text-[10px]">Harvest</span>
+                    <span className="font-bold text-ink">
+                      {grossHarvest.toLocaleString()} L
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-ink-muted block text-[10px]">Savings</span>
+                    <span className="text-forest-700 font-bold">
+                      {savingsPct}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#DEDFD8] flex items-center justify-between">
+                  <button
+                    onClick={() => onSelect(item)}
+                    className="neu-btn-primary px-3 py-1.5 rounded-lg font-bold text-xs inline-flex items-center space-x-1"
+                  >
+                    <span>Reopen Analysis</span>
+                    <ArrowUpRight className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => onDelete(item.request_id)}
+                    className="text-ink-muted hover:text-rose-600 p-1.5"
+                    title="Delete record"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && onPageChange && (
+          <div className="pt-4 border-t border-[#DEDFD8] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
+            <span className="text-ink-muted">
+              Showing {startRecord}–{endRecord} of {currentTotal} assessments
+            </span>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => onPageChange(page - 1)}
+                disabled={page <= 1}
+                className="neu-btn-secondary px-3 py-1.5 rounded-lg font-bold inline-flex items-center space-x-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                <span>Prev</span>
               </button>
+
+              <span className="px-3 py-1 bg-surface border border-white/80 shadow-neu-sm rounded-lg font-bold text-ink">
+                Page {page} of {totalPages}
+              </span>
+
               <button
-                onClick={() => onDelete(item.request_id)}
-                className="text-slate-400 hover:text-red-600 p-1.5"
+                type="button"
+                onClick={() => onPageChange(page + 1)}
+                disabled={page >= totalPages}
+                className="neu-btn-secondary px-3 py-1.5 rounded-lg font-bold inline-flex items-center space-x-1 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Trash2 className="h-4 w-4" />
+                <span>Next</span>
+                <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
-        ))}
-      </div>
+        )}
       </div>
     </div>
   )
 }
+export default HistorySection

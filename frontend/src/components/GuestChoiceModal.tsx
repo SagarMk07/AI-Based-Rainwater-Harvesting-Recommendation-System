@@ -29,17 +29,17 @@ export const GuestChoiceModal: React.FC<GuestChoiceModalProps> = ({ isOpen, onCl
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#252B26]/40 p-4 backdrop-blur-sm animate-in fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="guest-choice-title"
     >
-      <div className="relative w-full max-w-lg rounded-3xl border border-slate-700/80 bg-slate-900 text-white p-6 sm:p-8 shadow-2xl space-y-6">
+      <div className="relative w-full max-w-lg rounded-3xl neu-card bg-[#F4F4F0] text-ink p-6 sm:p-8 shadow-neu-lg space-y-6 border border-[#DEDFD8]">
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-xl p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          className="absolute right-4 top-4 rounded-xl p-2 text-ink-muted hover:text-ink hover:bg-[#EEEEEA] transition-colors"
           aria-label="Close dialog"
         >
           <X className="h-5 w-5" />
@@ -47,98 +47,91 @@ export const GuestChoiceModal: React.FC<GuestChoiceModalProps> = ({ isOpen, onCl
 
         {/* Modal Header */}
         <div className="space-y-2 pr-6">
-          <div className="inline-flex items-center space-x-2 rounded-full bg-forest-500/10 px-3 py-1 text-xs font-semibold text-forest-400 border border-forest-500/20">
+          <div className="inline-flex items-center space-x-2 rounded-full bg-[#EEEEEA] px-3 py-1 text-xs font-semibold text-forest-700 border border-forest-600/30">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Hydrological Assessment</span>
           </div>
-          <h2 id="guest-choice-title" className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+          <h2 id="guest-choice-title" className="text-xl sm:text-2xl font-extrabold text-ink tracking-tight">
             How would you like to proceed?
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            Choose whether to run an instant anonymous assessment or sign in to save your property
+          <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
+            Run an instant anonymous assessment or sign in to save your property
             records and historical runoff charts.
           </p>
         </div>
 
         {/* Options */}
-        <div className="space-y-3">
-          {/* Option 1: Continue as Guest */}
+        <div className="space-y-3.5">
+          {/* Option 1: Continue as Guest (RECOMMENDED / PRIMARY) */}
           <button
             type="button"
             onClick={handleGuestContinue}
-            className="w-full text-left p-4 rounded-2xl border border-forest-500/30 bg-forest-950/40 hover:bg-forest-900/40 hover:border-forest-400/50 transition-all group flex items-start space-x-3.5"
+            className="w-full text-left p-4 sm:p-5 rounded-2xl bg-[#F4F4F0] border-2 border-forest-600 shadow-neu hover:shadow-neu-sm active:shadow-neu-inset-sm transition-all group flex items-start space-x-3.5 relative"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-forest-600 text-white flex-shrink-0 group-hover:scale-105 transition-transform">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-forest-600 text-white flex-shrink-0 shadow-sm">
               <UserCheck className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-white group-hover:text-forest-300 transition-colors">
+                <span className="font-bold text-sm text-ink group-hover:text-forest-700 transition-colors">
                   Continue as Guest
                 </span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-forest-500/20 text-forest-300 border border-forest-500/30">
+                <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-forest-600 text-white font-bold tracking-wider shadow-sm">
                   Instant Access
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              <p className="text-xs text-ink-secondary mt-1 leading-relaxed">
                 Run the complete 5-step property analysis and 12-month water balance simulation immediately. No registration needed.
               </p>
             </div>
           </button>
 
-          {/* Option 2: Sign In */}
+          {/* Option 2: Sign In (SECONDARY) */}
           <button
             type="button"
             onClick={handleSignIn}
-            className="w-full text-left p-4 rounded-2xl border border-slate-800 bg-slate-800/60 hover:bg-slate-800 hover:border-slate-700 transition-all group flex items-start space-x-3.5"
+            className="w-full text-left p-3.5 sm:p-4 rounded-2xl bg-[#EEEEEA] hover:bg-[#F4F4F0] border border-[#DEDFD8] hover:shadow-neu-sm transition-all group flex items-start space-x-3.5"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-700 text-white flex-shrink-0 group-hover:scale-105 transition-transform">
-              <LogIn className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E3E4DE] text-ink-secondary flex-shrink-0">
+              <LogIn className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-white group-hover:text-slate-200 transition-colors">
+                <span className="font-semibold text-xs sm:text-sm text-ink">
                   Sign In to Existing Account
                 </span>
-                <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="h-4 w-4 text-ink-muted group-hover:text-ink group-hover:translate-x-0.5 transition-all" />
               </div>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                Load your saved properties, benchmark comparisons, and past engineering reports.
+              <p className="text-[11px] text-ink-muted mt-0.5">
+                Load your saved properties, benchmark comparisons, and past reports.
               </p>
             </div>
           </button>
 
-          {/* Option 3: Create Account */}
+          {/* Option 3: Create Account (TERTIARY) */}
           <button
             type="button"
             onClick={handleSignUp}
-            className="w-full text-left p-4 rounded-2xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800 hover:border-slate-700 transition-all group flex items-start space-x-3.5"
+            className="w-full text-left p-3.5 sm:p-4 rounded-2xl bg-[#EEEEEA] hover:bg-[#F4F4F0] border border-[#DEDFD8] hover:shadow-neu-sm transition-all group flex items-start space-x-3.5"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-water-700 text-white flex-shrink-0 group-hover:scale-105 transition-transform">
-              <Shield className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E3E4DE] text-ink-secondary flex-shrink-0">
+              <Shield className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-white group-hover:text-water-300 transition-colors">
-                  Create a Free Account
+                <span className="font-semibold text-xs sm:text-sm text-ink">
+                  Create a New Free Account
                 </span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-water-900/60 text-water-300 border border-water-700">
-                  Save Results
-                </span>
+                <ArrowRight className="h-4 w-4 text-ink-muted group-hover:text-ink group-hover:translate-x-0.5 transition-all" />
               </div>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                Save multi-year precipitation analyses, export PDF reports, and sync across devices.
+              <p className="text-[11px] text-ink-muted mt-0.5">
+                Register to track long-term rainfall yields and claim guest calculations later.
               </p>
             </div>
           </button>
-        </div>
-
-        <div className="pt-2 text-center">
-          <p className="text-[11px] text-slate-500">
-            Guest sessions can be optionally linked to an account after calculation.
-          </p>
         </div>
       </div>
     </div>
   )
 }
+export default GuestChoiceModal
