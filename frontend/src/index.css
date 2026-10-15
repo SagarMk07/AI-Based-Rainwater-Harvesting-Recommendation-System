@@ -230,3 +230,48 @@
     background: white !important;
   }
 }
+
+/* Accessible Motion & Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Page Entrance and Section Motion Utilities */
+.page-enter {
+  animation: pageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.section-reveal {
+  animation: slideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.card-hover-tactile {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-hover-tactile:hover {
+  transform: translateY(-2px);
+}
+
+.chart-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Subtle Interactive Tactile Feedback */
+.neu-btn-primary:active,
+.neu-btn-secondary:active {
+  transform: scale(0.985);
+  transition: transform 0.08s ease;
+}
+
+.neu-slider {
+  accent-color: #168447;
+  cursor: pointer;
+}
+

@@ -30,12 +30,14 @@ class AnalysisRecord:
         is_guest: bool = False,
         input_snapshot: Optional[Dict[str, Any]] = None,
         status: str = "completed",
+        remote_id: Optional[str] = None,
     ):
         self.analysis = analysis
         self.user_id = user_id
         self.is_guest = is_guest
         self.input_snapshot = input_snapshot or {}
         self.status = status
+        self.remote_id = remote_id
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -44,6 +46,7 @@ class AnalysisRecord:
             "user_id": self.user_id,
             "is_guest": self.is_guest,
             "status": self.status,
+            "remote_id": self.remote_id,
             "input_snapshot": self.input_snapshot,
             "result_snapshot": self.analysis.model_dump(),
         }
@@ -52,12 +55,16 @@ class AnalysisRecord:
     def from_dict(cls, data: Dict[str, Any]) -> "AnalysisRecord":
         result_snapshot = data.get("result_snapshot") or data
         analysis_obj = AnalysisResponse.model_validate(result_snapshot)
+        input_snap = data.get("input_snapshot") or {}
+        if not analysis_obj.input_snapshot and input_snap:
+            analysis_obj.input_snapshot = input_snap
         return cls(
             analysis=analysis_obj,
             user_id=data.get("user_id"),
             is_guest=data.get("is_guest", False),
-            input_snapshot=data.get("input_snapshot") or {},
+            input_snapshot=input_snap,
             status=data.get("status", "completed"),
+            remote_id=data.get("remote_id"),
         )
 
 
@@ -119,6 +126,8 @@ class AnalysisRepository:
         """Persist a completed analysis to memory cache, durable local storage, and Supabase."""
         with self._lock:
             input_dict = input_payload.model_dump() if input_payload else {}
+            if not analysis.input_snapshot and input_dict:
+                analysis.input_snapshot = input_dict
             record = AnalysisRecord(
                 analysis=analysis,
                 user_id=user_id,
@@ -156,7 +165,13 @@ class AnalysisRepository:
                 if sb_payload["id"] is None:
                     del sb_payload["id"]
 
-                sb_client.table("analyses").insert(sb_payload).execute()
+                insert_res = sb_client.table("analyses").insert(sb_payload).execute()
+                if insert_res.data and len(insert_res.data) > 0:
+                    remote_uuid = insert_res.data[0].get("id")
+                    if remote_uuid:
+                        with self._lock:
+                            record.remote_id = str(remote_uuid)
+                            self._flush_to_disk()
                 logger.info(f"Persisted analysis {analysis.request_id} to Supabase successfully.")
             except Exception as sb_err:
                 logger.debug(f"Supabase sync note for {analysis.request_id}: {sb_err}")
@@ -263,25 +278,51 @@ class AnalysisRepository:
                 "has_more": False,
             }
 
-    def delete(self, analysis_id: str, user_id: Optional[str] = None) -> bool:
-        """Delete an analysis from memory, local store, and Supabase."""
+    def delete(self, analysis_id: str, user_id: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
+        """Delete an analysis from memory, local store, and Supabase.
+        
+        Returns:
+            Tuple[bool, Dict[str, Any]]: (success, metadata)
+        """
+        remote_uuid = None
+        deleted_local = False
+
         with self._lock:
             if analysis_id in self._cache:
                 rec = self._cache[analysis_id]
                 # Enforce ownership if owned by an authenticated user
                 if rec.user_id and rec.user_id != user_id:
-                    return False
+                    return False, {"error": "unauthorized", "message": "Cross-user deletion forbidden"}
+                remote_uuid = rec.remote_id
                 del self._cache[analysis_id]
                 self._flush_to_disk()
+                deleted_local = True
+            else:
+                return False, {"error": "not_found", "message": f"Analysis '{analysis_id}' not found"}
+
+        deleted_remote = False
+        remote_status = "offline_mode"
 
         sb_client = get_supabase_client()
         if sb_client is not None and user_id:
-            try:
-                sb_client.table("analyses").delete().eq("id", analysis_id).eq("user_id", user_id).execute()
-            except Exception as e:
-                logger.debug(f"Supabase delete exception: {e}")
+            target_id = remote_uuid if remote_uuid else (analysis_id if (len(analysis_id) == 36 and "-" in analysis_id) else None)
+            if target_id:
+                try:
+                    sb_client.table("analyses").delete().eq("id", target_id).eq("user_id", user_id).execute()
+                    deleted_remote = True
+                    remote_status = "deleted"
+                    logger.info(f"Deleted analysis {analysis_id} (remote: {target_id}) from Supabase.")
+                except Exception as e:
+                    logger.debug(f"Supabase delete exception for {analysis_id}: {e}")
+                    remote_status = "remote_error"
+            else:
+                remote_status = "no_remote_uuid"
 
-        return True
+        return True, {
+            "deleted_local": deleted_local,
+            "deleted_remote": deleted_remote,
+            "remote_status": remote_status,
+        }
 
     def claim(self, analysis_id: str, user_id: str) -> Optional[AnalysisRecord]:
         """Claim an anonymous guest analysis to an authenticated user's account."""
@@ -301,24 +342,35 @@ class AnalysisRepository:
         sb_client = get_supabase_client()
         if sb_client is not None:
             try:
-                sb_client.table("analyses").update({
-                    "user_id": user_id,
-                    "is_offline_guest": False,
-                }).eq("id", analysis_id).execute()
+                target_id = rec.remote_id if rec.remote_id else (analysis_id if (len(analysis_id) == 36 and "-" in analysis_id) else None)
+                if target_id:
+                    sb_client.table("analyses").update({
+                        "user_id": user_id,
+                        "is_offline_guest": False,
+                    }).eq("id", target_id).execute()
             except Exception as e:
                 logger.debug(f"Supabase claim update exception: {e}")
 
         return rec
 
     def clear_for_user(self, user_id: str) -> int:
-        """Clear all analyses belonging to a specific user."""
+        """Clear all analyses belonging to a specific user across all storage tiers."""
         with self._lock:
             to_delete = [aid for aid, rec in self._cache.items() if rec.user_id == user_id]
             for aid in to_delete:
                 del self._cache[aid]
             if to_delete:
                 self._flush_to_disk()
-            return len(to_delete)
+
+        sb_client = get_supabase_client()
+        if sb_client is not None and user_id:
+            try:
+                sb_client.table("analyses").delete().eq("user_id", user_id).execute()
+                logger.info(f"Cleared remote analyses for user {user_id}")
+            except Exception as e:
+                logger.debug(f"Supabase clear exception for user {user_id}: {e}")
+
+        return len(to_delete)
 
 
 # Global singleton repository instance

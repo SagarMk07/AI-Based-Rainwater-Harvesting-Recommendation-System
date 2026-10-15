@@ -1,0 +1,27 @@
+# =====================================================================
+# Cloudflare Tunnel (cloudflared) Production Configuration Template
+# =====================================================================
+# Use this configuration to securely connect your self-hosted or containerized
+# FastAPI backend to Cloudflare Edge without opening any inbound firewall ports.
+#
+# Prerequisites:
+# 1. Install cloudflared CLI on your server/host: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+# 2. Login: cloudflared tunnel login
+# 3. Create tunnel: cloudflared tunnel create rainharvest-backend
+# 4. Route DNS: cloudflared tunnel route dns rainharvest-backend api.yourdomain.com
+# 5. Run tunnel: cloudflared tunnel --config cloudflare-tunnel.yml run
+
+tunnel: <YOUR_CLOUDFLARE_TUNNEL_UUID>
+credentials-file: /etc/cloudflared/<YOUR_CLOUDFLARE_TUNNEL_UUID>.json
+
+ingress:
+  # Route traffic for your API subdomain to the local FastAPI Uvicorn process
+  - hostname: api.yourdomain.com
+    service: http://127.0.0.1:8000
+    originRequest:
+      connectTimeout: 30s
+      noTLSVerify: false
+      keepAliveTimeout: 90s
+
+  # Catch-all rule for unmatched hostnames (returns 404)
+  - service: http_status:404

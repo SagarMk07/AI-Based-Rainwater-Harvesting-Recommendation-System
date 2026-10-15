@@ -2,12 +2,14 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { Droplets, ShieldCheck, Cpu } from 'lucide-react'
 import type { NavTab } from './Navbar'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 
 interface FooterProps {
   onTabChange?: (tab: NavTab) => void
   onOpenTelemetry?: () => void
 }
+
+const CURRENT_YEAR = new Date().getFullYear()
 
 export const Footer: React.FC<FooterProps> = ({ onTabChange, onOpenTelemetry }) => {
   const { user } = useAuth()
@@ -115,7 +117,7 @@ export const Footer: React.FC<FooterProps> = ({ onTabChange, onOpenTelemetry }) 
         </div>
 
         <div className="pt-6 border-t border-[#DEDFD8] flex flex-col sm:flex-row items-center justify-between text-xs text-[#8C948C] gap-2">
-          <span>&copy; {new Date().getFullYear()} RainHarvest AI. All rights reserved.</span>
+          <span>&copy; {CURRENT_YEAR} RainHarvest AI. All rights reserved.</span>
           <div className="flex items-center space-x-4">
             <Link to="/about" className="hover:text-[#252B26] transition-colors">
               Documentation

@@ -71,7 +71,31 @@ export default {
         'neu-inset-sm': 'inset 1.5px 1.5px 3px rgba(80, 82, 78, 0.08), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.85)',
         'neu-btn': '3px 3px 8px rgba(22, 132, 71, 0.28), -2px -2px 6px rgba(255, 255, 255, 0.7)',
         'neu-btn-pressed': 'inset 2px 2px 4px rgba(0, 0, 0, 0.25)',
-      }
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'page-enter': 'pageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'slide-up': 'slideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'pulse-subtle': 'pulseSubtle 2.5s ease-in-out infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        pageEnter: {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulseSubtle: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.85' },
+        },
+      },
     },
   },
   plugins: [],

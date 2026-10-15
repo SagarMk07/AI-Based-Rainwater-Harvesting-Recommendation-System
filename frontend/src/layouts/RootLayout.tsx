@@ -7,7 +7,8 @@ import type { HealthResponse } from '../types/health'
 import type { AnalysisResponse } from '../types/analysis'
 import { MLTelemetryModal } from '../components/MLTelemetryModal'
 import { RainHarvestChatWidget } from '../components/RainHarvestChatWidget'
-import { AuthProvider, useAuth } from '../context/AuthContext'
+import { AuthProvider } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { AuthModal, type AuthMode } from '../components/auth/AuthModal'
 import { PrivacyPolicyModal } from '../components/PrivacyPolicyModal'
 import { registerSessionExpiredHandler } from '../services/api'
@@ -68,7 +69,7 @@ const RootLayoutInner: React.FC = () => {
           setHistory(res.data.analyses)
           localStorage.setItem('rwh_analysis_history', JSON.stringify(res.data.analyses))
         }
-      } catch (err) {
+      } catch {
         // Fallback to local storage cache if offline
       }
     }
@@ -91,17 +92,20 @@ const RootLayoutInner: React.FC = () => {
   }
 
   const deleteFromHistory = async (requestId: string) => {
-    try {
-      await apiClient.delete(`/analysis/${requestId}`)
-    } catch {
-      // Ignore network errors on local deletion
-    }
+    await apiClient.delete(`/analysis/${requestId}`)
     const updated = history.filter((h) => h.request_id !== requestId)
     setHistory(updated)
     localStorage.setItem('rwh_analysis_history', JSON.stringify(updated))
   }
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
+    try {
+      if (user) {
+        await apiClient.delete('/analysis/history/clear')
+      }
+    } catch {
+      // Fallback
+    }
     setHistory([])
     localStorage.removeItem('rwh_analysis_history')
   }

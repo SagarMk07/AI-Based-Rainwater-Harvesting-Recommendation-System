@@ -1,26 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase, isLiveSupabaseConfigured, type AuthUserProfile } from '../services/supabaseClient'
 import { apiClient } from '../services/api'
 import type { AnalysisResponse } from '../types/analysis'
-
-interface AuthContextType {
-  user: AuthUserProfile | null
-  token: string | null
-  isGuest: boolean
-  loading: boolean
-  sessionExpired: boolean
-  setSessionExpired: (expired: boolean) => void
-  pendingAnalysis: AnalysisResponse | null
-  setPendingAnalysis: (analysis: AnalysisResponse | null) => void
-  login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>
-  signup: (email: string, pass: string, name?: string) => Promise<{ success: boolean; error?: string }>
-  logout: () => Promise<void>
-  resetPassword: (email: string) => Promise<{ success: boolean; message: string; error?: string }>
-  deleteAccount: () => Promise<{ success: boolean; error?: string }>
-  claimCurrentAnalysis: (requestId: string) => Promise<{ success: boolean; error?: string }>
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+import { AuthContext } from './authContextDef'
 
 const LOCAL_STORAGE_USER_KEY = 'rwh_auth_user'
 const LOCAL_STORAGE_TOKEN_KEY = 'rwh_auth_token'
@@ -243,12 +225,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   )
-}
-
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
 }

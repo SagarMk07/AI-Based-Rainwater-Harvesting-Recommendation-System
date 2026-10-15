@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { MapPin, Info } from 'lucide-react'
@@ -50,28 +50,31 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markerRef = useRef<L.Marker | null>(null)
+  const circleRef = useRef<L.Circle | null>(null)
 
   const cityKey = city.toLowerCase().trim()
-  const defaultCoords: [number, number] =
-    latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null
-      ? [latitude, longitude]
-      : CITY_COORDINATES[cityKey] || [20.5937, 78.9629] // India centroid fallback
-
-  const [currentCoords, setCurrentCoords] = useState<[number, number]>(defaultCoords)
-
-  // Sync internal coords if props change externally
-  useEffect(() => {
-    if (latitude && longitude) {
-      setCurrentCoords([latitude, longitude])
-    } else if (CITY_COORDINATES[cityKey]) {
-      setCurrentCoords(CITY_COORDINATES[cityKey])
+  const defaultCoords: [number, number] = useMemo(() => {
+    if (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null) {
+      return [latitude, longitude]
     }
+    return CITY_COORDINATES[cityKey] || [20.5937, 78.9629]
   }, [cityKey, latitude, longitude])
 
+  const [pinnedCoords, setPinnedCoords] = useState<[number, number] | null>(null)
+  const [prevCityKey, setPrevCityKey] = useState(cityKey)
+
+  // Reset pinned coords if city changed externally
+  if (cityKey !== prevCityKey) {
+    setPrevCityKey(cityKey)
+    setPinnedCoords(null)
+  }
+
+  const currentCoords = pinnedCoords || defaultCoords
+
+  // Mount map once on container mount
   useEffect(() => {
     if (!mapContainerRef.current) return
 
-    // Clean up prior map instance
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove()
       mapInstanceRef.current = null
@@ -79,7 +82,7 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({
 
     const zoomLevel = 12
     const map = L.map(mapContainerRef.current, {
-      center: currentCoords,
+      center: defaultCoords,
       zoom: zoomLevel,
       scrollWheelZoom: false,
     })
@@ -89,54 +92,41 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({
       maxZoom: 19,
     }).addTo(map)
 
-    const marker = L.marker(currentCoords, {
+    const marker = L.marker(defaultCoords, {
       draggable: isInteractive,
       title: 'Drag marker to pinpoint your property catchment',
     }).addTo(map)
 
-    marker.bindPopup(`
-      <div style="font-family: inherit; font-size: 12px; line-height: 1.4; color: #252B26;">
-        <strong style="color: #106638; font-size: 13px;">${city}${state ? `, ${state}` : ''}</strong><br/>
-        <span style="color: #0369a1;">🌧 Annual Rainfall: ${annualRainfallMm} mm</span><br/>
-        <span style="color: #168447;">🏠 Catchment: ${roofAreaSqm} m²</span><br/>
-        <span style="color: #106638; font-weight: 700;">⚙ ${recommendedSystem}</span><br/>
-        <span style="color: #687068; font-size: 10px;">${currentCoords[0].toFixed(4)}°N, ${currentCoords[1].toFixed(4)}°E</span>
-      </div>
-    `).openPopup()
-
-    // Add rainfall zone circle
-    const circle = L.circle(currentCoords, {
+    const circle = L.circle(defaultCoords, {
       color: '#168447',
       fillColor: '#168447',
       fillOpacity: 0.12,
       radius: 3500,
     }).addTo(map)
 
-    // Handle marker drag end event
     if (isInteractive) {
       marker.on('dragend', () => {
         const pos = marker.getLatLng()
-        const newCoords: [number, number] = [pos.lat, pos.lng]
-        setCurrentCoords(newCoords)
+        setPinnedCoords([pos.lat, pos.lng])
         circle.setLatLng(pos)
         if (onCoordinatesChange) {
           onCoordinatesChange(pos.lat, pos.lng)
         }
       })
 
-      // Click on map to reposition marker
       map.on('click', (e: L.LeafletMouseEvent) => {
-        const newCoords: [number, number] = [e.latlng.lat, e.latlng.lng]
-        marker.setLatLng(e.latlng)
-        circle.setLatLng(e.latlng)
-        setCurrentCoords(newCoords)
+        const pos = e.latlng
+        marker.setLatLng(pos)
+        circle.setLatLng(pos)
+        setPinnedCoords([pos.lat, pos.lng])
         if (onCoordinatesChange) {
-          onCoordinatesChange(e.latlng.lat, e.latlng.lng)
+          onCoordinatesChange(pos.lat, pos.lng)
         }
       })
     }
 
     markerRef.current = marker
+    circleRef.current = circle
     mapInstanceRef.current = map
 
     return () => {
@@ -145,7 +135,27 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({
         mapInstanceRef.current = null
       }
     }
-  }, [currentCoords[0], currentCoords[1], city, state, annualRainfallMm, roofAreaSqm, recommendedSystem, isInteractive])
+  }, [defaultCoords, isInteractive, onCoordinatesChange])
+
+  // Update position and popup whenever coords, city, or hydrological attributes update
+  useEffect(() => {
+    if (markerRef.current && circleRef.current && mapInstanceRef.current) {
+      const latlng: L.LatLngExpression = [currentCoords[0], currentCoords[1]]
+      markerRef.current.setLatLng(latlng)
+      circleRef.current.setLatLng(latlng)
+      mapInstanceRef.current.panTo(latlng)
+
+      markerRef.current.bindPopup(`
+        <div style="font-family: inherit; font-size: 12px; line-height: 1.4; color: #252B26;">
+          <strong style="color: #106638; font-size: 13px;">${city}${state ? `, ${state}` : ''}</strong><br/>
+          <span style="color: #0369a1;">🌧 Annual Rainfall: ${annualRainfallMm} mm</span><br/>
+          <span style="color: #168447;">🏠 Catchment: ${roofAreaSqm} m²</span><br/>
+          <span style="color: #106638; font-weight: 700;">⚙ ${recommendedSystem}</span><br/>
+          <span style="color: #687068; font-size: 10px;">${currentCoords[0].toFixed(4)}°N, ${currentCoords[1].toFixed(4)}°E</span>
+        </div>
+      `).openPopup()
+    }
+  }, [currentCoords, city, state, annualRainfallMm, roofAreaSqm, recommendedSystem])
 
   return (
     <div className="neu-card p-5 sm:p-6 space-y-4">
@@ -187,4 +197,5 @@ export const PropertyMap: React.FC<PropertyMapProps> = ({
     </div>
   )
 }
+
 export default PropertyMap

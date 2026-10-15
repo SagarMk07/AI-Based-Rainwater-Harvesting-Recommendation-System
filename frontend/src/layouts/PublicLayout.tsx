@@ -13,7 +13,7 @@ export const PublicLayout: React.FC = () => {
     <div className="flex min-h-screen flex-col bg-[#E9E9E4] text-[#252B26] font-sans antialiased selection:bg-forest-100 selection:text-forest-900">
       <PublicNavbar />
 
-      <main className="flex-1">
+      <main className="flex-1 page-enter">
         <Outlet />
       </main>
 

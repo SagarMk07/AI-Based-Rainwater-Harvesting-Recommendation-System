@@ -15,8 +15,8 @@ import {
   Trash2,
   Lock,
 } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
-import { useAppContext } from '../context/AppContext'
+import { useAuth } from '../context/useAuth'
+import { useAppContext } from '../context/useAppContext'
 
 interface AppNavbarProps {
   onOpenPrivacy: () => void

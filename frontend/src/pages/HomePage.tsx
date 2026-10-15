@@ -17,7 +17,7 @@ import { DashboardSummary } from '../components/DashboardSummary'
 import { LandingHero } from '../components/LandingHero'
 import { AboutSection } from '../components/AboutSection'
 import { StatusCard } from '../components/StatusCard'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import PageHeader from '../components/ui/PageHeader'
 
 export const HomePage: React.FC = () => {

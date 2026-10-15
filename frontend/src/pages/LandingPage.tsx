@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LandingHero } from '../components/LandingHero'
 import { GuestChoiceModal } from '../components/GuestChoiceModal'
-import { useAuth } from '../context/AuthContext'
-import { useAppContext } from '../context/AppContext'
+import { useAuth } from '../context/useAuth'
+import { useAppContext } from '../context/useAppContext'
 
 export const LandingPage: React.FC = () => {
   const [showGuestChoice, setShowGuestChoice] = useState(false)

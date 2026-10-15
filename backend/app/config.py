@@ -1,7 +1,7 @@
 """Application configuration management using Pydantic Settings."""
 
 import os
-from typing import List, Union
+from typing import List, Union, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,6 +22,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:5173",
     ]
+    CORS_ALLOWED_ORIGINS: Optional[Union[str, List[str]]] = None
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

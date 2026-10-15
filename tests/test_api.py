@@ -82,6 +82,39 @@ def test_tank_optimize_endpoint():
     assert len(data["selection_rationale"]) > 0
 
 
+def test_tank_compare_endpoint():
+    """Verify POST /api/tank/compare for both default sizing tiers and custom options."""
+    # Test default tiers
+    payload = {
+        "monthly_rainfall_mm": [10.0, 15.0, 25.0, 60.0, 120.0, 150.0, 180.0, 160.0, 140.0, 80.0, 30.0, 10.0],
+        "roof_area_sqm": 150.0,
+        "roof_type": "rcc",
+        "daily_demand_litres": 500.0,
+        "filter_efficiency": 0.90,
+    }
+    res = client.post("/api/tank/compare", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert "comparisons" in data
+    assert len(data["comparisons"]) >= 2
+    assert "recommended_capacity_litres" in data
+    assert data["recommended_capacity_litres"] > 0
+    assert any("Budget" in c["tier_name"] or "Minimum" in c["tier_name"] for c in data["comparisons"])
+    assert any("Balanced" in c["tier_name"] or "Recommended" in c["tier_name"] for c in data["comparisons"])
+
+    # Test custom capacities
+    custom_payload = {
+        **payload,
+        "capacities_litres": [3000.0, 5000.0, 10000.0],
+    }
+    res_custom = client.post("/api/tank/compare", json=custom_payload)
+    assert res_custom.status_code == 200
+    custom_data = res_custom.json()
+    assert len(custom_data["comparisons"]) == 3
+    caps = [c["capacity_litres"] for c in custom_data["comparisons"]]
+    assert caps == [3000.0, 5000.0, 10000.0]
+
+
 def test_recommend_endpoint():
     """Verify POST /api/recommend."""
     payload = {

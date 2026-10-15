@@ -6,8 +6,8 @@ import { analysisService } from '../services/analysisService'
 import { AnalysisForm } from '../components/AnalysisForm'
 import { ResultsDashboard } from '../components/ResultsDashboard'
 import { AuthModal } from '../components/auth/AuthModal'
-import { useAppContext } from '../context/AppContext'
-import { useAuth } from '../context/AuthContext'
+import { useAppContext } from '../context/useAppContext'
+import { useAuth } from '../context/useAuth'
 import PageHeader from '../components/ui/PageHeader'
 
 export const AnalyzePage: React.FC = () => {

@@ -1,0 +1,6 @@
+# =====================================================================
+# Cloudflare Pages Routing Rules
+# =====================================================================
+# Single Page Application (SPA) Client-Side Route Fallback
+# Ensures refreshing /analyze, /dashboard, /history, /about returns index.html
+/*    /index.html   200

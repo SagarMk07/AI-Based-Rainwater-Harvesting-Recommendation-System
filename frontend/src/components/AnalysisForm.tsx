@@ -139,7 +139,9 @@ export const AnalysisForm: React.FC<Props> = ({ onSubmit, loading }) => {
   // Fetch weather profile whenever city or coordinates change
   useEffect(() => {
     let isMounted = true
-    setWeatherLoading(true)
+    queueMicrotask(() => {
+      if (isMounted) setWeatherLoading(true)
+    })
     analysisService
       .getCityWeather(formData.city, formData.latitude, formData.longitude)
       .then((info) => {

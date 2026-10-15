@@ -5,11 +5,32 @@ import type {
   CityRainfallProfile,
   GeocodeResult,
   PaginatedHistoryResponse,
+  WaterBalanceResult,
+  WaterBalanceSimulateRequest,
+  TankOptimizeRequest,
+  TankOptimizeResponse,
+  TankCompareRequest,
+  TankCompareResponse,
 } from '../types/analysis'
 
 export const analysisService = {
   async runAnalysis(formData: AnalysisFormData): Promise<AnalysisResponse> {
     const response = await apiClient.post<AnalysisResponse>('/analyze', formData)
+    return response.data
+  },
+
+  async simulateWaterBalance(payload: WaterBalanceSimulateRequest): Promise<WaterBalanceResult> {
+    const response = await apiClient.post<WaterBalanceResult>('/water-balance/simulate', payload)
+    return response.data
+  },
+
+  async optimizeTankStorage(payload: TankOptimizeRequest): Promise<TankOptimizeResponse> {
+    const response = await apiClient.post<TankOptimizeResponse>('/tank/optimize', payload)
+    return response.data
+  },
+
+  async compareTankCapacities(payload: TankCompareRequest): Promise<TankCompareResponse> {
+    const response = await apiClient.post<TankCompareResponse>('/tank/compare', payload)
     return response.data
   },
 
@@ -30,8 +51,14 @@ export const analysisService = {
     return response.data
   },
 
-  async deleteAnalysis(analysisId: string): Promise<void> {
-    await apiClient.delete(`/analysis/${analysisId}`)
+  async deleteAnalysis(analysisId: string): Promise<any> {
+    const response = await apiClient.delete(`/analysis/${analysisId}`)
+    return response.data
+  },
+
+  async clearHistory(): Promise<any> {
+    const response = await apiClient.delete('/analysis/history/clear')
+    return response.data
   },
 
   async getCityWeather(

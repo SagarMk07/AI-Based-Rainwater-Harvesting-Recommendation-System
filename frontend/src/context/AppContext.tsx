@@ -1,35 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useHealth } from '../hooks/useHealth'
-import type { HealthResponse } from '../types/health'
 import type { AnalysisResponse } from '../types/analysis'
-import { useAuth } from './AuthContext'
+import { useAuth } from './useAuth'
 import { apiClient } from '../services/api'
+import { AppContext, type AppContextType } from './appContextDef'
 
-export interface AppContextType {
-  health: HealthResponse | null
-  healthLoading: boolean
-  healthError: string | null
-  refetchHealth: () => void
-  analysisResult: AnalysisResponse | null
-  setAnalysisResult: (result: AnalysisResponse | null) => void
-  history: AnalysisResponse[]
-  recentAnalyses: AnalysisResponse[]
-  recentLoading: boolean
-  recentError: string | null
-  refetchRecent: () => Promise<void>
-  reopenAnalysis: (id: string) => Promise<AnalysisResponse | null>
-  saveToHistory: (item: AnalysisResponse) => Promise<void>
-  deleteFromHistory: (id: string) => Promise<void>
-  clearHistory: () => void
-  showMLModal: boolean
-  setShowMLModal: (show: boolean) => void
-  showPrivacyModal: boolean
-  setShowPrivacyModal: (show: boolean) => void
-}
+export type { AppContextType }
 
-const AppContext = createContext<AppContextType | undefined>(undefined)
-
-const LOCAL_STORAGE_HISTORY_KEY = 'rwh_analysis_history'
+const getStorageKey = (userId?: string | null) => `rwh_history_${userId || 'guest'}`
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { data: health, loading: healthLoading, error: healthError, refetch: refetchHealth } = useHealth(15000)
@@ -40,7 +18,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [history, setHistory] = useState<AnalysisResponse[]>(() => {
     try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY)
+      const stored = localStorage.getItem(getStorageKey(user?.id))
       return stored ? JSON.parse(stored) : []
     } catch {
       return []
@@ -68,7 +46,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Sync history and recent records with backend when user session changes
   useEffect(() => {
+    let isMounted = true
+    const key = getStorageKey(user?.id)
+
     async function syncHistory() {
+      try {
+        const localCached = localStorage.getItem(key)
+        if (localCached && isMounted) {
+          setHistory(JSON.parse(localCached))
+        }
+      } catch {
+        // Ignore cache parse error
+      }
+
       setRecentLoading(true)
       setRecentError(null)
       try {
@@ -76,21 +66,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           apiClient.get('/analysis/history?limit=5'),
           apiClient.get('/analysis/history'),
         ])
+        if (!isMounted) return
         if (recentRes.data?.analyses) {
           setRecentAnalyses(recentRes.data.analyses)
         }
         if (fullRes.data?.analyses) {
           setHistory(fullRes.data.analyses)
-          localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(fullRes.data.analyses))
+          localStorage.setItem(key, JSON.stringify(fullRes.data.analyses))
         }
       } catch (err: any) {
-        setRecentError(err?.response?.data?.detail?.message || err?.message || 'Failed to connect to history service')
+        if (isMounted) {
+          setRecentError(err?.response?.data?.detail?.message || err?.message || 'Failed to connect to history service')
+        }
       } finally {
-        setRecentLoading(false)
+        if (isMounted) {
+          setRecentLoading(false)
+        }
       }
     }
     syncHistory()
-  }, [user])
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id])
 
   const reopenAnalysis = async (id: string): Promise<AnalysisResponse | null> => {
     try {
@@ -119,7 +118,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const updated = [item, ...history.filter((h) => h.request_id !== item.request_id)].slice(0, 50)
       setHistory(updated)
-      localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(updated))
+      localStorage.setItem(getStorageKey(user?.id), JSON.stringify(updated))
 
       if (user && item.is_guest) {
         await claimCurrentAnalysis(item.request_id)
@@ -130,21 +129,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const deleteFromHistory = async (requestId: string) => {
-    try {
-      await apiClient.delete(`/analysis/${requestId}`)
-    } catch {
-      // Ignore network errors on local deletion
-    }
+    // 1. Delete from backend persistent storage first (throws if unauthorized or failed)
+    await apiClient.delete(`/analysis/${requestId}`)
+
+    // 2. Only upon confirmed backend deletion, invalidate in-memory and local caches
     setRecentAnalyses((prev) => prev.filter((h) => h.request_id !== requestId))
-    const updated = history.filter((h) => h.request_id !== requestId)
-    setHistory(updated)
-    localStorage.setItem(LOCAL_STORAGE_HISTORY_KEY, JSON.stringify(updated))
+    setHistory((prev) => {
+      const updated = prev.filter((h) => h.request_id !== requestId)
+      localStorage.setItem(getStorageKey(user?.id), JSON.stringify(updated))
+      return updated
+    })
   }
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
+    try {
+      if (user) {
+        await apiClient.delete('/analysis/history/clear')
+      }
+    } catch (e) {
+      console.warn('Backend clear history failed:', e)
+    }
     setHistory([])
     setRecentAnalyses([])
-    localStorage.removeItem(LOCAL_STORAGE_HISTORY_KEY)
+    localStorage.removeItem(getStorageKey(user?.id))
   }
 
   return (
@@ -174,13 +181,4 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       {children}
     </AppContext.Provider>
   )
-}
-
-
-export const useAppContext = () => {
-  const context = useContext(AppContext)
-  if (!context) {
-    throw new Error('useAppContext must be used within an AppProvider')
-  }
-  return context
 }

@@ -35,8 +35,14 @@ def decode_supabase_jwt(token: str) -> AuthUser:
             detail={"code": "MISSING_TOKEN", "message": "Authentication token is required."}
         )
 
-    # 1. Test token handler for deterministic test suites
+    # 1. Test token handler for deterministic test suites (strictly forbidden in production)
     if token.startswith("test-token-"):
+        if settings.APP_ENV == "production":
+            logger.warning("Attempted use of mock development token in production environment.")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "MOCK_AUTH_FORBIDDEN", "message": "Development mock authentication tokens are strictly forbidden in production."}
+            )
         user_identifier = token.replace("test-token-", "")
         return AuthUser(
             id=f"user-{user_identifier}",
@@ -56,6 +62,12 @@ def decode_supabase_jwt(token: str) -> AuthUser:
                 options={"verify_exp": True, "verify_aud": False}
             )
         else:
+            if settings.APP_ENV == "production":
+                logger.error("SUPABASE_JWT_SECRET is missing in production environment.")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail={"code": "SECURITY_CONFIGURATION_ERROR", "message": "Cryptographic authentication secret is not configured on the server."}
+                )
             # In development/test mode without a shared secret, verify structure and claims
             payload = jwt.decode(
                 token,

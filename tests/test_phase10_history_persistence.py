@@ -203,3 +203,146 @@ def test_guest_analysis_and_claim_flow():
 
     # 5. Claimant can read it
     assert client.get(f"/api/analysis/{guest_id}", headers=user_header).status_code == 200
+
+
+def test_history_delete_persistence_across_reloads():
+    """Verify that deleting an analysis removes it permanently from memory, disk store, and history listings.
+    
+    Ensures that re-instantiating the repository or reloading the database from disk
+    does NOT restore the deleted analysis.
+    """
+    import json
+    from backend.app.database.analysis_repository import AnalysisRepository
+
+    user_token = f"user-persist-{uuid.uuid4().hex[:8]}"
+    headers = {"Authorization": f"Bearer test-token-{user_token}"}
+
+    # 1. Create an analysis
+    payload = {
+        "city": "Hyderabad",
+        "roof_area_sqm": 220.0,
+        "roof_type": "concrete",
+        "annual_rainfall_mm": 820.0,
+        "occupants": 4,
+        "daily_demand_litres": 500.0,
+    }
+    create_res = client.post("/api/analyze", json=payload, headers=headers)
+    assert create_res.status_code == 200
+    req_id = create_res.json()["request_id"]
+
+    # 2. Verify present in user history
+    h1 = client.get("/api/analysis/history", headers=headers).json()
+    assert any(a["request_id"] == req_id for a in h1["analyses"])
+
+    # 3. Verify present on disk in analyses_store.json
+    disk_store_path = analysis_repo._storage_path
+    with open(disk_store_path, "r", encoding="utf-8") as f:
+        disk_data = json.load(f)
+    assert any(item.get("request_id") == req_id for item in disk_data)
+
+    # 4. Delete the analysis via DELETE endpoint
+    del_res = client.delete(f"/api/analysis/{req_id}", headers=headers)
+    assert del_res.status_code == 200
+    del_data = del_res.json()
+    assert del_data["status"] == "deleted"
+    assert del_data["request_id"] == req_id
+    assert del_data["deleted_local"] is True
+
+    # 5. Verify absent from user history API
+    h2 = client.get("/api/analysis/history", headers=headers).json()
+    assert not any(a["request_id"] == req_id for a in h2["analyses"])
+
+    # 6. Verify absent from disk store
+    with open(disk_store_path, "r", encoding="utf-8") as f:
+        disk_data_after = json.load(f)
+    assert not any(item.get("request_id") == req_id for item in disk_data_after)
+
+    # 7. CRITICAL PERSISTENCE TEST: Re-instantiate AnalysisRepository fresh from disk
+    # Simulates complete server restart / page refresh reading persistent store
+    fresh_repo = AnalysisRepository(storage_path=disk_store_path)
+    fresh_record = fresh_repo.get_by_id(req_id)
+    assert fresh_record is None, "Deleted record must NOT exist in fresh repository loaded from disk"
+
+    fresh_list = fresh_repo.list_analyses(user_id=f"user-{user_token}")
+    assert not any(a.request_id == req_id for a in fresh_list["analyses"]), "Deleted record must NOT appear in fresh repository list"
+
+    # 8. Direct GET must return 404
+    assert client.get(f"/api/analysis/{req_id}", headers=headers).status_code == 404
+
+
+def test_history_delete_authorization_and_ownership():
+    """Verify strict user-scoped ownership on deletion:
+    - Unauthenticated delete of private record -> 401
+    - Foreign authenticated user delete -> 403
+    - Nonexistent analysis delete -> 404
+    - Valid owner delete -> 200
+    """
+    alice_token = f"alice-{uuid.uuid4().hex[:8]}"
+    bob_token = f"bob-{uuid.uuid4().hex[:8]}"
+    alice_headers = {"Authorization": f"Bearer test-token-{alice_token}"}
+    bob_headers = {"Authorization": f"Bearer test-token-{bob_token}"}
+
+    # Alice creates analysis
+    create_res = client.post(
+        "/api/analyze",
+        json={"city": "Kolkata", "roof_area_sqm": 175.0, "roof_type": "rcc"},
+        headers=alice_headers,
+    )
+    assert create_res.status_code == 200
+    alice_id = create_res.json()["request_id"]
+
+    # 1. Unauthenticated DELETE -> 401 Unauthorized
+    unauth_del = client.delete(f"/api/analysis/{alice_id}")
+    assert unauth_del.status_code == 401
+    assert unauth_del.json()["error"]["code"] == "UNAUTHORIZED"
+
+    # 2. Bob attempts to delete Alice's analysis -> 403 Forbidden
+    bob_del = client.delete(f"/api/analysis/{alice_id}", headers=bob_headers)
+    assert bob_del.status_code == 403
+    assert bob_del.json()["error"]["code"] == "FORBIDDEN"
+
+    # 3. Delete nonexistent analysis -> 404 Not Found
+    missing_del = client.delete("/api/analysis/nonexistent-id-00000", headers=alice_headers)
+    assert missing_del.status_code == 404
+    assert missing_del.json()["error"]["code"] == "NOT_FOUND"
+
+    # 4. Alice deletes own analysis -> 200 OK
+    alice_del = client.delete(f"/api/analysis/{alice_id}", headers=alice_headers)
+    assert alice_del.status_code == 200
+    assert alice_del.json()["status"] == "deleted"
+
+    # 5. Subsequent delete by Alice now returns 404
+    second_del = client.delete(f"/api/analysis/{alice_id}", headers=alice_headers)
+    assert second_del.status_code == 404
+
+
+def test_clear_user_history_endpoint():
+    """Verify DELETE /api/analysis/history/clear wipes all records for requesting user only."""
+    user_token = f"clear-user-{uuid.uuid4().hex[:8]}"
+    headers = {"Authorization": f"Bearer test-token-{user_token}"}
+
+    # Create 3 analyses
+    for i in range(3):
+        res = client.post(
+            "/api/analyze",
+            json={"city": "Delhi", "roof_area_sqm": 120.0 + i * 20, "roof_type": "rcc"},
+            headers=headers,
+        )
+        assert res.status_code == 200
+
+    # Verify present
+    h1 = client.get("/api/analysis/history", headers=headers).json()
+    assert h1["total"] == 3
+
+    # Clear history
+    clear_res = client.delete("/api/analysis/history/clear", headers=headers)
+    assert clear_res.status_code == 200
+    clear_data = clear_res.json()
+    assert clear_data["status"] == "cleared"
+    assert clear_data["deleted_count"] == 3
+
+    # Verify history empty
+    h2 = client.get("/api/analysis/history", headers=headers).json()
+    assert h2["total"] == 0
+    assert len(h2["analyses"]) == 0
+

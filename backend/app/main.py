@@ -28,7 +28,14 @@ app = FastAPI(
 )
 
 # Sanitize CORS origins for production (Never allow wildcard origins in production)
-cors_origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS]
+raw_origins = settings.CORS_ALLOWED_ORIGINS or settings.CORS_ORIGINS
+if isinstance(raw_origins, str):
+    cors_origins = [i.strip() for i in raw_origins.split(",") if i.strip()]
+elif isinstance(raw_origins, list):
+    cors_origins = list(raw_origins)
+else:
+    cors_origins = ["https://rainharvester.app"]
+
 if settings.APP_ENV == "production":
     cors_origins = [o for o in cors_origins if o != "*"]
     if not cors_origins:

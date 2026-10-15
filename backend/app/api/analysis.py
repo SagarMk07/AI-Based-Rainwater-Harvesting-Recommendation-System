@@ -17,6 +17,9 @@ from backend.app.schemas.analysis import (
     WaterBalanceSimulateRequest,
     TankOptimizeRequest,
     TankOptimizeResponse,
+    TankCompareRequest,
+    TankCompareResponse,
+    TankCompareItem,
     MLForecastRequest,
     LocationItem,
     LocationsResponse,
@@ -71,6 +74,7 @@ from backend.app.ml.rainfall_predictor import (
 from backend.app.database.connection import get_supabase_client
 from backend.app.auth.security import AuthUser, get_current_user, get_optional_user
 from backend.app.utils.logger import logger
+from backend.app.config import settings
 from fastapi import Depends
 
 from backend.app.database.analysis_repository import analysis_repo, AnalysisRecord
@@ -203,6 +207,7 @@ async def run_full_analysis(
             explainability=explainability,
             ml_forecast=ml_forecast_data,
             sizing_tiers=opt_summary.sizing_tiers,
+            input_snapshot=payload.model_dump(),
         )
 
         # Persist completed analysis to durable multi-tier storage
@@ -215,10 +220,14 @@ async def run_full_analysis(
 
         return analysis_res
 
+    except HTTPException:
+        raise
     except ValueError as ve:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Analysis pipeline error: {exc}")
+        logger.error(f"Analysis pipeline error: {exc}", exc_info=True)
+        detail = f"Analysis pipeline error: {exc}" if settings.DEBUG else "An unexpected error occurred while executing the analysis pipeline."
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
 
 
 # =====================================================================
@@ -332,6 +341,90 @@ async def optimize_tank_storage(payload: TankOptimizeRequest) -> TankOptimizeRes
         )
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+
+
+@router.post("/tank/compare", response_model=TankCompareResponse)
+async def compare_tank_capacities(payload: TankCompareRequest) -> TankCompareResponse:
+    """Compare multiple storage tank capacities (e.g. Budget, Recommended, High Storage)."""
+    if len(payload.monthly_rainfall_mm) != 12:
+        raise HTTPException(status_code=422, detail="Expected exactly 12 monthly rainfall values.")
+    try:
+        coeff = get_runoff_coefficient(payload.roof_type)
+        summary: OptimizationSummary = find_optimal_storage(
+            monthly_rainfall_mm=payload.monthly_rainfall_mm,
+            roof_area_sqm=payload.roof_area_sqm,
+            runoff_coefficient=coeff,
+            filter_efficiency=payload.filter_efficiency,
+            daily_demand_litres=payload.daily_demand_litres,
+            budget_inr=payload.budget_inr,
+            candidate_capacities=payload.capacities_litres if payload.capacities_litres else None,
+        )
+
+        eval_map = {c.capacity_litres: c for c in summary.all_candidates}
+        comparisons: List[TankCompareItem] = []
+
+        if payload.capacities_litres:
+            for cap in payload.capacities_litres:
+                cand = eval_map.get(cap)
+                if cand:
+                    comparisons.append(
+                        TankCompareItem(
+                            tier_name=f"{int(cap):,} L Option",
+                            capacity_litres=cand.capacity_litres,
+                            demand_met_percentage=cand.demand_met_percentage,
+                            total_supplied_litres=cand.total_supplied_litres,
+                            total_overflow_litres=cand.total_overflow_litres,
+                            average_storage_utilization_pct=cand.average_storage_utilization_pct,
+                            tank_cost_inr=cand.tank_cost_inr,
+                            annual_savings_inr=cand.annual_savings_inr,
+                            payback_years=cand.payback_years,
+                            optimization_score=cand.optimization_score,
+                            rationale=f"Simulated performance for {int(cap):,} L capacity under local precipitation profile.",
+                        )
+                    )
+        else:
+            tiers = summary.sizing_tiers or {}
+            tier_defs = [
+                ("Budget (Minimum)", tiers.get("minimum", {})),
+                ("Balanced (Recommended)", tiers.get("recommended", {})),
+                ("High Storage (Upper Practical)", tiers.get("upper_practical", {})),
+            ]
+            seen_caps = set()
+            for name, tier in tier_defs:
+                cap = tier.get("capacity_litres")
+                if cap is not None and cap not in seen_caps:
+                    seen_caps.add(cap)
+                    cand = eval_map.get(cap)
+                    if cand:
+                        comparisons.append(
+                            TankCompareItem(
+                                tier_name=name,
+                                capacity_litres=cand.capacity_litres,
+                                demand_met_percentage=cand.demand_met_percentage,
+                                total_supplied_litres=cand.total_supplied_litres,
+                                total_overflow_litres=cand.total_overflow_litres,
+                                average_storage_utilization_pct=cand.average_storage_utilization_pct,
+                                tank_cost_inr=cand.tank_cost_inr,
+                                annual_savings_inr=cand.annual_savings_inr,
+                                payback_years=cand.payback_years,
+                                optimization_score=cand.optimization_score,
+                                rationale=tier.get("rationale", ""),
+                            )
+                        )
+
+        return TankCompareResponse(
+            comparisons=comparisons,
+            recommended_capacity_litres=summary.optimal_capacity_litres,
+            summary=summary.recommendation_note,
+        )
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as exc:
+        logger.error(f"Error comparing tank capacities: {exc}", exc_info=True)
+        detail = f"Tank comparison error: {exc}" if settings.DEBUG else "Failed to compute tank capacity comparison."
+        raise HTTPException(status_code=500, detail=detail)
 
 
 # =====================================================================
@@ -528,8 +621,12 @@ async def get_rainfall_forecast(payload: MLForecastRequest):
             elevation_m=payload.elevation_m,
             annual_estimate_mm=payload.annual_estimate_mm,
         )
+    except HTTPException:
+        raise
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+        logger.error(f"Rainfall forecast error: {exc}", exc_info=True)
+        detail = f"Rainfall forecast error: {exc}" if settings.DEBUG else "Failed to generate rainfall forecast."
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
 
 
 @router.get("/model/metrics")
@@ -628,7 +725,14 @@ async def delete_analysis_by_id(
     analysis_id: str,
     current_user: Optional[AuthUser] = Depends(get_optional_user),
 ):
-    """Delete a stored analysis with ownership verification."""
+    """Delete a stored analysis with ownership verification.
+    
+    Status codes:
+    - 404: Analysis not found
+    - 401: Authentication required to delete an authenticated user's analysis
+    - 403: Forbidden - user does not own this analysis
+    - 200: Successfully deleted with honest persistence reporting
+    """
     record = analysis_repo.get_by_id(analysis_id)
     if not record:
         raise HTTPException(
@@ -649,9 +753,39 @@ async def delete_analysis_by_id(
                 detail={"code": "FORBIDDEN", "message": "You are not authorized to delete another user's analysis."}
             )
 
-    analysis_repo.delete(analysis_id, user_id=current_user.id if current_user else None)
+    success, meta = analysis_repo.delete(analysis_id, user_id=current_user.id if current_user else None)
+    if not success:
+        err = meta.get("error")
+        if err == "not_found":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "NOT_FOUND", "message": f"Analysis '{analysis_id}' not found."}
+            )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "FORBIDDEN", "message": meta.get("message", "You are not authorized to delete this analysis.")}
+        )
 
-    return {"status": "deleted", "request_id": analysis_id}
+    return {
+        "status": "deleted",
+        "request_id": analysis_id,
+        "deleted_local": meta.get("deleted_local", True),
+        "deleted_remote": meta.get("deleted_remote", False),
+        "persistence": "cloud" if meta.get("deleted_remote") else "local_disk",
+    }
+
+
+@router.delete("/analysis/history/clear")
+async def clear_user_analyses(
+    current_user: AuthUser = Depends(get_current_user),
+):
+    """Clear all stored property analyses belonging to the authenticated user."""
+    count = analysis_repo.clear_for_user(current_user.id)
+    return {
+        "status": "cleared",
+        "deleted_count": count,
+        "user_id": current_user.id,
+    }
 
 
 @router.post("/analysis/{analysis_id}/claim")

@@ -23,15 +23,18 @@ const BOT_KNOWLEDGE: Record<string, string> = {
   'cost': 'Payback periods typically range from 2.5 to 5.2 years depending on local municipal piped water tariffs and private tanker delivery dependency in your region.',
 }
 
+const getTimestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const createMsgId = () => `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+
 export const RainHarvestChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: 'welcome',
       sender: 'bot',
       text: 'Hello! I am your RainHarvest AI Assistant. Ask me anything about rainwater tank sizing, runoff coefficients, filtration, or recharge structures.',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: 'Just now',
     },
   ])
 
@@ -48,10 +51,10 @@ export const RainHarvestChatWidget: React.FC = () => {
     if (!text) return
 
     const userMsg: ChatMessage = {
-      id: String(Date.now()),
+      id: createMsgId(),
       sender: 'user',
       text,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: getTimestamp(),
     }
 
     setMessages((prev) => [...prev, userMsg])

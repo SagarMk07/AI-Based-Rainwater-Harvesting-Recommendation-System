@@ -133,6 +133,46 @@ class TankOptimizeResponse(BaseModel):
     sizing_tiers: Optional[Dict[str, Any]] = None
 
 
+class TankCompareRequest(BaseModel):
+    monthly_rainfall_mm: List[float] = Field(..., description="12 monthly rainfall values in mm")
+    roof_area_sqm: float = Field(..., gt=0.0, le=1000000.0)
+    roof_type: str = Field(default="rcc")
+    daily_demand_litres: float = Field(default=600.0, gt=0.0, le=5000000.0)
+    filter_efficiency: float = Field(default=0.90, ge=0.5, le=1.0)
+    budget_inr: Optional[float] = Field(default=None, ge=0.0, le=1000000000.0)
+    capacities_litres: Optional[List[float]] = Field(default=None, description="Capacities in litres to compare")
+
+    @field_validator("monthly_rainfall_mm")
+    @classmethod
+    def validate_12_months(cls, v: List[float]) -> List[float]:
+        if len(v) != 12:
+            raise ValueError(f"Expected exactly 12 monthly rainfall values, received {len(v)}.")
+        for val in v:
+            if val < 0.0:
+                raise ValueError("Monthly rainfall values cannot be negative.")
+        return v
+
+
+class TankCompareItem(BaseModel):
+    tier_name: str
+    capacity_litres: float
+    demand_met_percentage: float
+    total_supplied_litres: float
+    total_overflow_litres: float
+    average_storage_utilization_pct: float
+    tank_cost_inr: float
+    annual_savings_inr: float
+    payback_years: float
+    optimization_score: float
+    rationale: str
+
+
+class TankCompareResponse(BaseModel):
+    comparisons: List[TankCompareItem]
+    recommended_capacity_litres: float
+    summary: str
+
+
 class MLForecastRequest(BaseModel):
     latitude: float = Field(default=12.97, ge=-90.0, le=90.0)
     longitude: float = Field(default=77.59, ge=-180.0, le=180.0)
@@ -184,6 +224,7 @@ class AnalysisResponse(BaseModel):
     explainability: ExplainabilityResponse
     ml_forecast: Optional[Dict[str, Any]] = None
     sizing_tiers: Optional[Dict[str, Any]] = None
+    input_snapshot: Optional[Dict[str, Any]] = None
 
 
 class ClaimAnalysisRequest(BaseModel):

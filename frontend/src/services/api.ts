@@ -1,6 +1,6 @@
 import axios, { type AxiosError } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api'
 
 export interface ApiErrorDetail {
   code: string
@@ -24,6 +24,15 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+})
+
+// Attach JWT bearer token from localStorage if available
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('rwh_auth_token')
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 // Custom callback listener for 401 session expiration

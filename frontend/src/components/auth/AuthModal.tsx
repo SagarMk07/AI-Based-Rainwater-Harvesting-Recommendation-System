@@ -11,7 +11,7 @@ import {
   Droplets,
   Shield,
 } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 
 export type AuthMode = 'login' | 'signup' | 'forgot' | 'session_expired' | 'unauthorized'
 
@@ -40,9 +40,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   // Sync mode when initialMode prop changes
   React.useEffect(() => {
-    setMode(initialMode)
-    setErrorMessage(null)
-    setSuccessMessage(null)
+    queueMicrotask(() => {
+      setMode(initialMode)
+      setErrorMessage(null)
+      setSuccessMessage(null)
+    })
   }, [initialMode, isOpen])
 
   if (!isOpen) return null

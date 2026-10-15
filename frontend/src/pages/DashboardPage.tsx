@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DashboardSummary } from '../components/DashboardSummary'
 import { StatusCard } from '../components/StatusCard'
-import { useAppContext } from '../context/AppContext'
+import { useAppContext } from '../context/useAppContext'
 
 export const DashboardPage: React.FC = () => {
   const {

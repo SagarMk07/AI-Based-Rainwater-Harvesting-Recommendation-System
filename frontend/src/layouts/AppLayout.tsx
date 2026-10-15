@@ -5,8 +5,8 @@ import { Footer } from '../components/Footer'
 import { MLTelemetryModal } from '../components/MLTelemetryModal'
 import { PrivacyPolicyModal } from '../components/PrivacyPolicyModal'
 import { RainHarvestChatWidget } from '../components/RainHarvestChatWidget'
-import { useAppContext } from '../context/AppContext'
-import { useAuth } from '../context/AuthContext'
+import { useAppContext } from '../context/useAppContext'
+import { useAuth } from '../context/useAuth'
 
 export const AppLayout: React.FC = () => {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
@@ -41,7 +41,7 @@ export const AppLayout: React.FC = () => {
         onDeleteAccount={() => setShowDeleteConfirm(true)}
       />
 
-      <main className="flex-1">
+      <main className="flex-1 page-enter">
         <Outlet />
       </main>
 

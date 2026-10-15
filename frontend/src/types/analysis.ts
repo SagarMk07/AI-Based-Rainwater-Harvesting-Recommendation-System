@@ -139,6 +139,68 @@ export interface AnalysisResponse {
     recommended?: SizingTierInfo
     upper_practical?: SizingTierInfo
   } | null
+  input_snapshot?: AnalysisFormData | Record<string, any> | null
+}
+
+export interface TankCompareItem {
+  tier_name: string
+  capacity_litres: number
+  demand_met_percentage: number
+  total_supplied_litres: number
+  total_overflow_litres: number
+  average_storage_utilization_pct: number
+  tank_cost_inr: number
+  annual_savings_inr: number
+  payback_years: number
+  optimization_score: number
+  rationale: string
+}
+
+export interface TankCompareResponse {
+  comparisons: TankCompareItem[]
+  recommended_capacity_litres: number
+  summary: string
+}
+
+export interface TankCompareRequest {
+  monthly_rainfall_mm: number[]
+  roof_area_sqm: number
+  roof_type?: string
+  daily_demand_litres?: number
+  filter_efficiency?: number
+  budget_inr?: number | null
+  capacities_litres?: number[] | null
+}
+
+export interface WaterBalanceSimulateRequest {
+  monthly_rainfall_mm: number[]
+  roof_area_sqm: number
+  roof_type?: string
+  tank_capacity_litres: number
+  daily_demand_litres?: number
+  filter_efficiency?: number
+}
+
+export interface TankOptimizeRequest {
+  monthly_rainfall_mm: number[]
+  roof_area_sqm: number
+  roof_type?: string
+  daily_demand_litres?: number
+  filter_efficiency?: number
+  budget_inr?: number | null
+}
+
+export interface TankOptimizeResponse {
+  all_candidates: CandidateEvaluation[]
+  recommended_capacity_litres: number
+  selection_rationale: string
+  minimum_practical_capacity_litres?: number | null
+  upper_practical_capacity_litres?: number | null
+  sizing_tiers?: {
+    minimum?: SizingTierInfo
+    recommended?: SizingTierInfo
+    upper_practical?: SizingTierInfo
+  } | null
 }
 
 export interface AnalysisFormData {
